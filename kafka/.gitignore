@@ -1,0 +1,7 @@
+# Kafka data
+data/
+
+# Environment variables
+.env
+.env.*
+!.env.example

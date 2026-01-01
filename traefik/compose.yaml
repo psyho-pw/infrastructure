@@ -1,0 +1,67 @@
+services:
+  traefik:
+    image: traefik:v3.2
+    container_name: traefik
+    command:
+      # API 대시보드 (선택)
+      - --api.dashboard=true
+      - --api.insecure=false
+
+      # Docker 프로바이더
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=proxy
+
+      # HTTP 진입점 (리다이렉트 없음 - 미들웨어로 처리)
+      - --entrypoints.web.address=:80
+
+      # HTTPS 진입점
+      - --entrypoints.websecure.address=:443
+
+      # TCP 진입점 (Kafka 등)
+      - --entrypoints.kafka.address=:9092
+
+      # Let's Encrypt 자동 인증서 (HTTP-01 챌린지)
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?required}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+
+      # 로그
+      - --log.level=INFO
+      - --accesslog=true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "9092:9092"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - proxy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+
+      # HTTP → HTTPS 리다이렉트 미들웨어 (전역)
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+
+      # HTTP 라우터 (리다이렉트용)
+      - "traefik.http.routers.dashboard-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.dashboard-http.entrypoints=web"
+      - "traefik.http.routers.dashboard-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.dashboard-http.service=api@internal"
+
+      # HTTPS 라우터 (메인)
+      - "traefik.http.routers.dashboard.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth,dashboard-strip"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${DASHBOARD_AUTH}"
+      - "traefik.http.middlewares.dashboard-strip.stripprefix.prefixes=/traefik"
+
+networks:
+  proxy:
+    name: proxy
+    driver: bridge

@@ -1,0 +1,7 @@
+# Let's Encrypt 인증서
+letsencrypt/
+
+# Environment variables
+.env
+.env.*
+!.env.example
