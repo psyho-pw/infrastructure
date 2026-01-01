@@ -1,5 +1,5 @@
 # IDE
-../.idea/
+.idea/
 .vscode/
 *.iml
 .claude
@@ -11,3 +11,14 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Secrets & Environment
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.passwd
+id_rsa
+id_rsa.pub
+known_hosts
