@@ -9,5 +9,16 @@ services:
       - ./conf/squid.passwd:/etc/squid/squid.passwd
       - ./conf/ips.conf:/etc/squid/ips.conf
       - ./conf/blocked-sites.conf:/etc/squid/blocked-sites.conf
-    ports:
-      - 8080:3128
+    expose:
+      - "3128"
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.tcp.routers.squid.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.squid.entrypoints=squid"
+      - "traefik.tcp.services.squid.loadbalancer.server.port=3128"
+
+networks:
+  proxy:
+    external: true
