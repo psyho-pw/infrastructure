@@ -1,0 +1,13 @@
+services:
+  squid:
+    image: ubuntu/squid:latest
+    container_name: squid
+    restart: always
+    volumes:
+      - ./squid.conf:/etc/squid/squid.conf
+      - ./log:/var/log/squid
+      - ./conf/squid.passwd:/etc/squid/squid.passwd
+      - ./conf/ips.conf:/etc/squid/ips.conf
+      - ./conf/blocked-sites.conf:/etc/squid/blocked-sites.conf
+    ports:
+      - 8080:3128
