@@ -1,4 +1,4 @@
-# Infrastructure
+# PI Infrastructure
 
 Traefik 리버스 프록시 및 Kafka 클러스터 Docker Compose 구성
 
@@ -91,8 +91,3 @@ networks:
   proxy:
     external: true
 ```
-
-## Documentation
-
-- [Traefik 설정](./traefik/README.md)
-- [Kafka 설정](./kafka/README.md)
