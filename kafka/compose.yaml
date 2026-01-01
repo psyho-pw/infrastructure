@@ -3,6 +3,41 @@ services:
     image: confluentinc/cp-kafka:${KAFKA_VERSION:?required}
     hostname: kafka
     container_name: kafka
+    command:
+      - bash
+      - -c
+      - |
+        # JAAS 파일 생성
+        cat > /tmp/kafka_server_jaas.conf << EOF
+        KafkaServer {
+            org.apache.kafka.common.security.scram.ScramLoginModule required
+            username="${KAFKA_ADMIN_USER}"
+            password="${KAFKA_ADMIN_PASSWORD}";
+        };
+        sasl_plaintext.KafkaServer {
+            org.apache.kafka.common.security.scram.ScramLoginModule required
+            username="${KAFKA_ADMIN_USER}"
+            password="${KAFKA_ADMIN_PASSWORD}";
+        };
+        internal.KafkaServer {
+            org.apache.kafka.common.security.scram.ScramLoginModule required
+            username="${KAFKA_ADMIN_USER}"
+            password="${KAFKA_ADMIN_PASSWORD}";
+        };
+        EOF
+
+        # 설정 파일 생성
+        /etc/confluent/docker/configure
+
+        # 스토리지 포맷
+        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
+          echo "=== Formatting storage with SCRAM users ==="
+          kafka-storage format -t ${CLUSTER_ID} -c /etc/kafka/kafka.properties \
+            --add-scram "SCRAM-SHA-512=[name=${KAFKA_ADMIN_USER},password=${KAFKA_ADMIN_PASSWORD}]"
+        fi
+
+        # Kafka 실행
+        /etc/confluent/docker/launch
     expose:
       - "9092"
       - "9093"
@@ -37,7 +72,8 @@ services:
         password="${KAFKA_ADMIN_PASSWORD}";
 
       # 슈퍼유저 설정
-      KAFKA_SUPER_USERS: "User:${KAFKA_ADMIN_USER}"
+      # ANONYMOUS는 CONTROLLER 리스너(PLAINTEXT)용
+      KAFKA_SUPER_USERS: "User:${KAFKA_ADMIN_USER};User:ANONYMOUS"
 
       # ACL 설정
       KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
@@ -57,10 +93,12 @@ services:
       # Log 설정
       KAFKA_LOG_RETENTION_HOURS: ${KAFKA_LOG_RETENTION_HOURS:?required}
       KAFKA_LOG_SEGMENT_BYTES: ${KAFKA_LOG_SEGMENT_BYTES:?required}
-      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: ${KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS:?required}
       KAFKA_LOG_DIRS: ${KAFKA_LOG_DIRS:?required}
 
       CLUSTER_ID: ${CLUSTER_ID:?required}
+
+      # SASL JAAS 설정 파일 경로
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/tmp/kafka_server_jaas.conf"
     volumes:
       - ./data/kafka:/var/lib/kafka/data
     networks:
@@ -68,7 +106,7 @@ services:
       - proxy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
