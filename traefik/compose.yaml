@@ -21,8 +21,11 @@ services:
       # TCP 진입점 (Kafka 등)
       - --entrypoints.kafka.address=:9092
 
-      # TCP 진입점 (Squid Proxy)
+      # TCP 진입점 (Squid Proxy) - 스트리밍용 타임아웃 설정
       - --entrypoints.squid.address=:8080
+      - --entrypoints.squid.transport.respondingTimeouts.readTimeout=0
+      - --entrypoints.squid.transport.respondingTimeouts.writeTimeout=0
+      - --entrypoints.squid.transport.respondingTimeouts.idleTimeout=3600s
 
       # Let's Encrypt 자동 인증서 (HTTP-01 챌린지)
       - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?required}
