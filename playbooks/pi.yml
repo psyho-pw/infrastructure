@@ -1,0 +1,35 @@
+---
+# Pi server specific playbook
+
+- name: Configure Pi server base
+  hosts: pi
+  gather_facts: yes
+  become: yes
+  roles:
+    - common
+    - docker
+  tags: [common, docker]
+
+- name: Deploy Traefik on Pi
+  hosts: pi
+  gather_facts: yes
+  become: yes
+  roles:
+    - traefik
+  tags: [traefik]
+
+- name: Deploy Kafka cluster on Pi
+  hosts: pi
+  gather_facts: yes
+  become: yes
+  roles:
+    - kafka
+  tags: [kafka]
+
+- name: Deploy Squid Proxy on Pi
+  hosts: pi
+  gather_facts: yes
+  become: yes
+  roles:
+    - squid_proxy
+  tags: [squid]

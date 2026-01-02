@@ -1,0 +1,46 @@
+# Infrastructure Inventory - Production Environment
+
+# 데이터베이스 서버
+[db]
+db-server ansible_host=<DB_SERVER_IP> ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/sayhoOracle/sayho
+
+# CI/CD 서버
+[jenkins]
+jenkins-server ansible_host=<JENKINS_SERVER_IP> ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/sayhoOracle/sayho
+
+# 메인 서비스 클러스터
+[pi]
+pi-server ansible_host=local.psyho.kr ansible_user=sayho ansible_ssh_private_key_file=~/.ssh/sayhoOracle/sayho
+
+# 운영 환경
+[production]
+production-server ansible_host=<PRODUCTION_SERVER_IP> ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/sayhoOracle/sayho
+
+# 테스트 환경
+[test]
+test-server ansible_host=<TEST_SERVER_IP> ansible_user=rocky ansible_ssh_private_key_file=~/.ssh/sayhoOracle/sayho
+
+# 그룹 정의
+
+# Traefik이 설치될 모든 서버
+[traefik_hosts]
+pi-server
+db-server
+production-server
+test-server
+
+# Docker가 설치될 모든 서버
+[docker_hosts]
+db-server
+jenkins-server
+pi-server
+production-server
+test-server
+
+# 모든 서버
+[all_servers:children]
+db
+jenkins
+pi
+production
+test

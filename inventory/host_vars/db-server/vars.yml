@@ -1,0 +1,21 @@
+---
+# DB 서버 전용 변수
+
+server_name: "db-server"
+domain: "db.example.com"  # CHANGE THIS
+
+# Traefik 비활성화 (DB 서버는 traefik 불필요할 수 있음)
+traefik_enabled: false
+
+# PostgreSQL 설정 (예시)
+postgresql_enabled: false
+postgresql_version: "16"
+postgresql_port: 5432
+
+# MySQL 설정 (예시)
+mysql_enabled: false
+mysql_version: "8.0"
+mysql_port: 3306
+
+# 데이터 디렉토리
+db_data_dir: "{{ data_dir }}/databases"

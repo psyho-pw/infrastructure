@@ -1,0 +1,38 @@
+---
+# 모든 호스트에 공통으로 적용되는 변수
+
+# 기본 설정
+timezone: "UTC"
+locale: "en_US.UTF-8"
+
+# Docker 설정
+docker_edition: "ce"
+docker_package: "docker-{{ docker_edition }}"
+docker_compose_version: "2.24.0"
+docker_users:
+  - "{{ ansible_user }}"
+
+# 공통 디렉토리
+base_dir: "/home/{{ ansible_user }}/server"
+
+# 방화벽 설정
+firewall_allowed_tcp_ports:
+  - 22    # SSH
+  - 80    # HTTP
+  - 443   # HTTPS
+
+# 공통 패키지
+common_packages:
+  - curl
+  - wget
+  - git
+  - vim
+  - htop
+  - net-tools
+  - python3
+  - python3-pip
+  - python3-docker
+  - python3-passlib
+
+# Python 패키지
+python_packages: []

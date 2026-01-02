@@ -1,0 +1,57 @@
+---
+# Kafka role - Kafka 클러스터 설정
+
+- name: Skip Kafka deployment if not enabled
+  ansible.builtin.meta: end_play
+  when: not (kafka_enabled | default(false))
+  tags: [kafka]
+
+- name: Create Kafka base and scripts directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ kafka_dir }}"
+    - "{{ kafka_dir }}/scripts"
+  tags: [kafka, directories]
+
+- name: Create Kafka data directory
+  ansible.builtin.file:
+    path: "{{ kafka_dir }}/data"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  tags: [kafka, directories]
+
+- name: Copy Kafka init script
+  ansible.builtin.template:
+    src: init-kafka-users.sh.j2
+    dest: "{{ kafka_dir }}/scripts/init-kafka-users.sh"
+    mode: '0644'
+  tags: [kafka, scripts]
+
+- name: Create Kafka docker compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ kafka_dir }}/compose.yml"
+    mode: '0644'
+  notify: Restart Kafka
+  tags: [kafka, compose]
+
+- name: Create Kafka environment file
+  ansible.builtin.template:
+    src: kafka.env.j2
+    dest: "{{ kafka_dir }}/.env"
+    mode: '0600'
+  notify: Restart Kafka
+  tags: [kafka, env]
+
+- name: Deploy Kafka cluster
+  community.docker.docker_compose_v2:
+    project_src: "{{ kafka_dir }}"
+    state: present
+  tags: [kafka, deploy]

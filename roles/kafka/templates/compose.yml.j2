@@ -1,0 +1,187 @@
+services:
+  kafka:
+    image: confluentinc/cp-kafka:${KAFKA_VERSION}
+    hostname: kafka
+    container_name: kafka
+    command:
+      - bash
+      - -c
+      - |
+        # JAAS 파일 생성
+        cat > /tmp/kafka_server_jaas.conf << EOF
+        KafkaServer {
+            org.apache.kafka.common.security.scram.ScramLoginModule required
+            username="${KAFKA_ADMIN_USER}"
+            password="${KAFKA_ADMIN_PASSWORD}";
+        };
+        sasl_plaintext.KafkaServer {
+            org.apache.kafka.common.security.scram.ScramLoginModule required
+            username="${KAFKA_ADMIN_USER}"
+            password="${KAFKA_ADMIN_PASSWORD}";
+        };
+        internal.KafkaServer {
+            org.apache.kafka.common.security.scram.ScramLoginModule required
+            username="${KAFKA_ADMIN_USER}"
+            password="${KAFKA_ADMIN_PASSWORD}";
+        };
+        EOF
+
+        # 설정 파일 생성
+        /etc/confluent/docker/configure
+
+        # 스토리지 포맷
+        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
+          echo "=== Formatting storage with SCRAM users ==="
+          kafka-storage format -t ${CLUSTER_ID} -c /etc/kafka/kafka.properties \
+            --add-scram "SCRAM-SHA-512=[name=${KAFKA_ADMIN_USER},password=${KAFKA_ADMIN_PASSWORD}]"
+        fi
+
+        # Kafka 실행
+        /etc/confluent/docker/launch
+    expose:
+      - "9092"
+      - "9093"
+      - "29092"
+    environment:
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID}
+      KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES}
+
+      # Listener 설정
+      KAFKA_LISTENERS: SASL_PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: SASL_PLAINTEXT://${DOMAIN}:9092,INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT,INTERNAL:SASL_PLAINTEXT
+
+      # Controller 설정
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_CONTROLLER_QUORUM_VOTERS}
+      KAFKA_CONTROLLER_LISTENER_NAMES: ${KAFKA_CONTROLLER_LISTENER_NAMES}
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+
+      # SASL 설정
+      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: SCRAM-SHA-512
+      KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL: PLAIN
+
+      # SASL JAAS 설정
+      KAFKA_LISTENER_NAME_SASL__PLAINTEXT_SCRAM__SHA__512_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.scram.ScramLoginModule required
+        username="${KAFKA_ADMIN_USER}"
+        password="${KAFKA_ADMIN_PASSWORD}";
+      KAFKA_LISTENER_NAME_INTERNAL_SCRAM__SHA__512_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.scram.ScramLoginModule required
+        username="${KAFKA_ADMIN_USER}"
+        password="${KAFKA_ADMIN_PASSWORD}";
+
+      # 슈퍼유저 설정
+      KAFKA_SUPER_USERS: "User:${KAFKA_ADMIN_USER};User:ANONYMOUS"
+
+      # ACL 설정
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+
+      # Replication 설정
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: ${KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS}
+
+      # Topic 설정
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS_ENABLE}
+      KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS}
+      KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION_FACTOR}
+
+      # Log 설정
+      KAFKA_LOG_RETENTION_HOURS: ${KAFKA_LOG_RETENTION_HOURS}
+      KAFKA_LOG_SEGMENT_BYTES: ${KAFKA_LOG_SEGMENT_BYTES}
+      KAFKA_LOG_DIRS: ${KAFKA_LOG_DIRS}
+
+      CLUSTER_ID: ${CLUSTER_ID}
+
+      # SASL JAAS 설정 파일 경로
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/tmp/kafka_server_jaas.conf"
+    volumes:
+      - {{ kafka_dir }}/data/kafka:/var/lib/kafka/data
+    networks:
+      - kafka-network
+      - proxy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      # Traefik TCP 라우팅 (Kafka)
+      - "traefik.enable=true"
+      - "traefik.tcp.routers.kafka.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.kafka.entrypoints=kafka"
+      - "traefik.tcp.routers.kafka.tls=true"
+      - "traefik.tcp.services.kafka.loadbalancer.server.port=9092"
+
+  kafka-init:
+    image: confluentinc/cp-kafka:${KAFKA_VERSION}
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_ADMIN_USER: ${KAFKA_ADMIN_USER}
+      KAFKA_ADMIN_PASSWORD: ${KAFKA_ADMIN_PASSWORD}
+      KAFKA_CLIENT_USER: ${KAFKA_CLIENT_USER}
+      KAFKA_CLIENT_PASSWORD: ${KAFKA_CLIENT_PASSWORD}
+    volumes:
+      - {{ kafka_dir }}/scripts/init-kafka-users.sh:/scripts/init-kafka-users.sh:ro
+    entrypoint: ["/bin/bash", "/scripts/init-kafka-users.sh"]
+    networks:
+      - kafka-network
+
+{% if kafka_ui_enabled | default(true) %}
+  kafka-ui:
+    image: provectuslabs/kafka-ui:${KAFKA_UI_VERSION}
+    container_name: kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      # Kafka 클러스터 설정
+      KAFKA_CLUSTERS_0_NAME: ${KAFKA_CLUSTER_NAME}
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: SCRAM-SHA-512
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"${KAFKA_ADMIN_USER}\" password=\"${KAFKA_ADMIN_PASSWORD}\";"
+
+      # Kafka UI 인증 설정
+      AUTH_TYPE: ${KAFKA_UI_AUTH_TYPE}
+      SPRING_SECURITY_USER_NAME: ${KAFKA_UI_ADMIN_USER}
+      SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_ADMIN_PASSWORD}
+
+      DYNAMIC_CONFIG_ENABLED: ${KAFKA_UI_DYNAMIC_CONFIG_ENABLED}
+
+      # Base Path 설정
+      SERVER_SERVLET_CONTEXT_PATH: /kafka
+    networks:
+      - kafka-network
+      - proxy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+
+      # HTTP 라우터 (리다이렉트용)
+      - "traefik.http.routers.kafka-ui-http.rule=Host(`${DOMAIN}`) && PathPrefix(`/kafka`)"
+      - "traefik.http.routers.kafka-ui-http.entrypoints=web"
+      - "traefik.http.routers.kafka-ui-http.middlewares=redirect-to-https@docker"
+
+      # HTTPS 라우터 (메인)
+      - "traefik.http.routers.kafka-ui.rule=Host(`${DOMAIN}`) && PathPrefix(`/kafka`)"
+      - "traefik.http.routers.kafka-ui.entrypoints=websecure"
+      - "traefik.http.routers.kafka-ui.tls.certresolver=letsencrypt"
+      - "traefik.http.services.kafka-ui.loadbalancer.server.port=8080"
+{% endif %}
+
+networks:
+  kafka-network:
+    driver: bridge
+  proxy:
+    external: true

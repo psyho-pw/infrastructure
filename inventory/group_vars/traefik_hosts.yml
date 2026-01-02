@@ -1,0 +1,39 @@
+---
+# Traefik이 설치될 모든 호스트에 적용되는 변수
+
+# Traefik 설정
+traefik_version: "v3.6.6"
+traefik_image: "traefik:{{ traefik_version }}"
+traefik_container_name: "traefik"
+
+# Traefik 디렉토리
+traefik_dir: "{{ base_dir }}/traefik"
+traefik_config_dir: "{{ traefik_dir }}"
+traefik_letsencrypt_dir: "{{ traefik_dir }}/letsencrypt"
+
+# Traefik 네트워크
+traefik_network: "proxy"
+
+# Traefik 포트
+traefik_ports:
+  - "80:80"
+  - "443:443"
+
+# Traefik 진입점
+traefik_entrypoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+# Let's Encrypt 설정 (호스트별로 오버라이드)
+traefik_acme_email: "admin@example.com"  # CHANGE THIS
+traefik_acme_storage: "/letsencrypt/acme.json"
+
+# Traefik 대시보드
+traefik_dashboard_enabled: true
+traefik_api_insecure: false
+
+# 로그 레벨
+traefik_log_level: "INFO"
+traefik_access_log: true

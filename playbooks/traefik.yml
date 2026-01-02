@@ -1,0 +1,10 @@
+---
+# Traefik deployment playbook
+
+- name: Deploy Traefik reverse proxy
+  hosts: traefik_hosts
+  gather_facts: yes
+  become: yes
+  roles:
+    - traefik
+  tags: [traefik]

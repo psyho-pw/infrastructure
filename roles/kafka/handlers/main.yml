@@ -1,0 +1,7 @@
+---
+# Kafka handlers
+
+- name: Restart Kafka
+  community.docker.docker_compose_v2:
+    project_src: "{{ kafka_dir }}"
+    state: restarted

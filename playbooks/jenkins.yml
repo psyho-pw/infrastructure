@@ -1,0 +1,14 @@
+---
+# Jenkins CI/CD server playbook
+
+- name: Configure Jenkins server
+  hosts: jenkins
+  gather_facts: yes
+  become: yes
+  roles:
+    - common
+    - docker
+    - traefik
+  tags: [common, docker, traefik]
+
+# TODO: Add Jenkins-specific role

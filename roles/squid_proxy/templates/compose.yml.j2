@@ -1,0 +1,30 @@
+services:
+  squid:
+    image: {{ squid_image | default('ubuntu/squid:latest') }}
+    container_name: squid
+    restart: always
+    volumes:
+      - {{ squid_dir }}/squid.conf:/etc/squid/squid.conf
+      - {{ squid_dir }}/logs:/var/log/squid
+{% if squid_use_auth | default(false) %}
+      - {{ squid_dir }}/conf/squid.passwd:/etc/squid/squid.passwd
+{% endif %}
+{% if squid_use_ip_whitelist | default(false) %}
+      - {{ squid_dir }}/conf/ips.conf:/etc/squid/ips.conf
+{% endif %}
+{% if squid_use_blocked_sites | default(false) %}
+      - {{ squid_dir }}/conf/blocked-sites.conf:/etc/squid/blocked-sites.conf
+{% endif %}
+    expose:
+      - "{{ squid_port | default(3128) }}"
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.tcp.routers.squid.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.squid.entrypoints=squid"
+      - "traefik.tcp.services.squid.loadbalancer.server.port={{ squid_port | default(3128) }}"
+
+networks:
+  proxy:
+    external: true

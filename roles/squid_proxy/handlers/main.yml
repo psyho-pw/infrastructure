@@ -1,0 +1,7 @@
+---
+# Squid Proxy handlers
+
+- name: Restart Squid
+  community.docker.docker_compose_v2:
+    project_src: "{{ squid_dir }}"
+    state: restarted

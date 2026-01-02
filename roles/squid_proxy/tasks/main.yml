@@ -1,0 +1,79 @@
+---
+# Squid Proxy role - Squid 프록시 서버 설정
+
+- name: Skip Squid deployment if not enabled
+  ansible.builtin.meta: end_play
+  when: not (squid_enabled | default(false))
+  tags: [squid]
+
+- name: Create Squid base and conf directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ squid_dir }}"
+    - "{{ squid_dir }}/conf"
+  tags: [squid, directories]
+
+- name: Create Squid logs directory
+  ansible.builtin.file:
+    path: "{{ squid_dir }}/logs"
+    state: directory
+    mode: '0755'
+    owner: "13"
+    group: "13"
+  tags: [squid, directories]
+
+- name: Install Squid dependencies
+  ansible.builtin.apt:
+    name:
+      - apache2-utils
+      - python3-passlib
+    state: present
+  tags: [squid, dependencies]
+
+- name: Create Squid password file
+  community.general.htpasswd:
+    path: "{{ squid_dir }}/conf/squid.passwd"
+    name: "{{ squid_user }}"
+    password: "{{ squid_password }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+  when: squid_use_auth | default(false)
+  ignore_errors: "{{ ansible_check_mode }}"
+  tags: [squid, auth]
+
+- name: Create blocked sites list
+  ansible.builtin.template:
+    src: blocked-sites.conf.j2
+    dest: "{{ squid_dir }}/conf/blocked-sites.conf"
+    mode: '0644'
+  when: squid_use_blocked_sites | default(false)
+  notify: Restart Squid
+  tags: [squid, config]
+
+- name: Create Squid configuration file
+  ansible.builtin.template:
+    src: squid.conf.j2
+    dest: "{{ squid_dir }}/squid.conf"
+    mode: '0644'
+  notify: Restart Squid
+  tags: [squid, config]
+
+- name: Create Squid docker-compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ squid_dir }}/compose.yml"
+    mode: '0644'
+  notify: Restart Squid
+  tags: [squid, compose]
+
+- name: Deploy Squid proxy
+  community.docker.docker_compose_v2:
+    project_src: "{{ squid_dir }}"
+    state: present
+  tags: [squid, deploy]

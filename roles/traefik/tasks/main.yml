@@ -1,0 +1,46 @@
+---
+# Traefik role - Traefik 리버스 프록시 설정
+
+- name: Create Traefik directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ traefik_config_dir }}"
+    - "{{ traefik_letsencrypt_dir }}"
+  tags: [traefik, directories]
+
+- name: Create acme.json file
+  ansible.builtin.copy:
+    content: ""
+    dest: "{{ traefik_letsencrypt_dir }}/acme.json"
+    force: no
+    mode: '0600'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  tags: [traefik, letsencrypt]
+
+- name: Create Traefik docker compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ traefik_config_dir }}/compose.yml"
+    mode: '0644'
+  notify: Restart Traefik
+  tags: [traefik, compose]
+
+- name: Create Traefik environment file
+  ansible.builtin.template:
+    src: traefik.env.j2
+    dest: "{{ traefik_config_dir }}/.env"
+    mode: '0600'
+  notify: Restart Traefik
+  tags: [traefik, env]
+
+- name: Deploy Traefik container
+  community.docker.docker_compose_v2:
+    project_src: "{{ traefik_config_dir }}"
+    state: present
+  tags: [traefik, deploy]

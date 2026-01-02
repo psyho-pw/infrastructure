@@ -1,0 +1,135 @@
+#-----------------------------------------------------------------------------
+# 1. 인증 설정
+#-----------------------------------------------------------------------------
+{% if squid_use_auth | default(false) %}
+auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/squid.passwd
+auth_param basic children 5
+auth_param basic realm Squid proxy-caching web server
+auth_param basic credentialsttl 2 hours
+{% endif %}
+
+#-----------------------------------------------------------------------------
+# 2. ACL 정의
+#-----------------------------------------------------------------------------
+{% if squid_use_auth | default(false) %}
+# 인증 ACL
+acl auth_users proxy_auth REQUIRED
+{% endif %}
+
+# 네트워크 ACL
+acl localnet src 10.0.0.0/8         # RFC1918 possible internal network
+acl localnet src 172.16.0.0/12      # RFC1918 possible internal network
+acl localnet src 192.168.0.0/16     # RFC1918 possible internal network
+
+# 포트 ACL
+acl SSL_ports port 443
+acl Safe_ports port 80              # http
+acl Safe_ports port 443             # https
+acl Safe_ports port 21              # ftp
+
+# 메소드 ACL
+acl CONNECT method CONNECT
+
+{% if squid_use_blocked_sites | default(false) %}
+# 도메인 차단 리스트 파일 정의
+acl blocked_sites dstdomain /etc/squid/blocked-sites.conf
+{% endif %}
+
+acl bad_requests http_status 400
+acl SAFE_METHODS method GET HEAD POST
+
+acl static_files urlpath_regex \.(jpg|gif|png|css|js)$
+acl success_codes http_status 200-299
+
+#-----------------------------------------------------------------------------
+# 3. 접근 제어 규칙
+#-----------------------------------------------------------------------------
+# 먼저 차단할 요청들 정의
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+http_access deny bad_requests
+http_access deny manager
+{% if squid_use_blocked_sites | default(false) %}
+http_access deny blocked_sites
+{% endif %}
+
+# 안전한 로컬 접근 허용
+http_access allow manager localhost
+
+{% if squid_use_auth | default(false) %}
+# 인증된 사용자 허용
+http_access allow auth_users
+http_access deny !auth_users
+{% else %}
+# 인증 없이 허용 (보안 주의!)
+http_access allow all
+{% endif %}
+
+# 로컬 네트워크 접근 차단
+http_access deny localnet
+
+# 마지막으로 모든 요청 차단
+http_access deny all
+
+# ICP/HTCP 접근 제어
+icp_access deny all
+
+#-----------------------------------------------------------------------------
+# 4. 포트 및 기본 설정
+#-----------------------------------------------------------------------------
+http_port {{ squid_port | default(3128) }}
+
+#-----------------------------------------------------------------------------
+# 5. 캐시 및 메모리 설정
+#-----------------------------------------------------------------------------
+cache_mem {{ squid_cache_mem | default('32 MB') }}
+maximum_object_size {{ squid_max_object_size | default('4 MB') }}
+minimum_object_size {{ squid_min_object_size | default('0 KB') }}
+coredump_dir /var/spool/squid
+
+#-----------------------------------------------------------------------------
+# 6. 로깅 설정
+#-----------------------------------------------------------------------------
+# 로그 포맷
+access_log none static_files
+
+{% raw %}
+logformat combinedjson { "clientip": "%>a", "ident": "%ui", "uname": "%un", "timestamp": "%{%FT%T%z}tg", "verb": "%rm", "request": "%ru", "httpversion": "HTTP/%rv", "response": %>Hs, "bytes": %<st, "referer": "%{Referer}>h", "agent": "%{User-Agent}>h", "request_status": "%Sh", "hierarchy_status": "%Sh" }
+{% endraw %}
+
+# 로그 파일 위치
+access_log /var/log/squid/access.log combinedjson
+cache_log /var/log/squid/cache.log
+cache_store_log /var/log/squid/store.log
+
+# 로그 로테이션 설정
+logfile_rotate {{ squid_log_rotate | default(7) }}
+client_lifetime {{ squid_client_lifetime | default('1 day') }}
+shutdown_lifetime {{ squid_shutdown_lifetime | default('30 seconds') }}
+
+#-----------------------------------------------------------------------------
+# 7. 캐시 갱신 패턴
+#-----------------------------------------------------------------------------
+refresh_pattern ^ftp:           1440    20%     10080
+refresh_pattern ^gopher:        1440    0%      1440
+refresh_pattern -i (/cgi-bin/|\?) 0     0%      0
+refresh_pattern .               0       20%     4320
+
+#-----------------------------------------------------------------------------
+# 8. 보안 설정
+#-----------------------------------------------------------------------------
+# DNS 설정
+dns_timeout {{ squid_dns_timeout | default('5 seconds') }}
+
+# 연결 제한
+max_filedescriptors {{ squid_max_filedescriptors | default(1024) }}
+tcp_recv_bufsize {{ squid_tcp_recv_bufsize | default('64 KB') }}
+
+# 헤더 검증 강화
+request_header_access User-Agent deny all
+request_header_access Via deny all
+request_header_access X-Forwarded-For deny all
+
+# 비정상적인 요청 패턴 차단
+acl bad_paths urlpath_regex -i \.\.|\.(git|rsp|php)$|cgi-bin|luci|manager
+http_access deny bad_paths

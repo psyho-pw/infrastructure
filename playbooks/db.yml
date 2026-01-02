@@ -1,0 +1,13 @@
+---
+# Database server playbook
+
+- name: Configure Database server
+  hosts: db
+  gather_facts: yes
+  become: yes
+  roles:
+    - common
+    - docker
+  tags: [common, docker]
+
+# TODO: Add database-specific roles (PostgreSQL, MySQL, etc.)

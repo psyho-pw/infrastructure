@@ -1,0 +1,12 @@
+---
+# Production 서버 전용 변수
+
+server_name: "production-server"
+domain: "production.example.com"  # CHANGE THIS
+
+# Traefik 설정 (민감 정보는 vault.yml에서 참조)
+traefik_acme_email: "{{ vault_traefik_acme_email }}"
+traefik_dashboard_domain: "{{ domain }}"
+traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth | default(omit) }}"
+
+# 서비스별 설정 추가 필요

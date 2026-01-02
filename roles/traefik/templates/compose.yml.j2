@@ -1,0 +1,87 @@
+services:
+  traefik:
+    image: {{ traefik_image }}
+    container_name: {{ traefik_container_name }}
+    command:
+      # API 대시보드
+{% if traefik_dashboard_enabled | default(true) %}
+      - --api.dashboard=true
+      - --api.insecure={{ traefik_api_insecure | default(false) }}
+{% endif %}
+
+      # Docker 프로바이더
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network={{ traefik_network }}
+
+      # 기본 진입점
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+
+{% if traefik_custom_entrypoints is defined %}
+      # 커스텀 진입점
+{% for name, config in traefik_custom_entrypoints.items() %}
+      - --entrypoints.{{ name }}.address={{ config.address }}
+{% if config.transport is defined %}
+{% for timeout_type, timeout_value in config.transport.respondingTimeouts.items() %}
+      - --entrypoints.{{ name }}.transport.respondingTimeouts.{{ timeout_type }}={{ timeout_value }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+      # Let's Encrypt 자동 인증서
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage={{ traefik_acme_storage }}
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+
+      # 로그
+      - --log.level={{ traefik_log_level | default('INFO') }}
+{% if traefik_access_log | default(true) %}
+      - --accesslog=true
+{% endif %}
+    ports:
+{% for port in traefik_ports %}
+      - "{{ port }}"
+{% endfor %}
+{% if traefik_custom_ports is defined %}
+{% for port in traefik_custom_ports %}
+      - "{{ port }}"
+{% endfor %}
+{% endif %}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - {{ traefik_letsencrypt_dir }}:/letsencrypt
+    networks:
+      - {{ traefik_network }}
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+
+      # HTTP → HTTPS 리다이렉트 미들웨어
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+
+{% if traefik_dashboard_enabled | default(true) and traefik_dashboard_domain is defined %}
+      # HTTP 라우터 (리다이렉트용)
+      - "traefik.http.routers.dashboard-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.dashboard-http.entrypoints=web"
+      - "traefik.http.routers.dashboard-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.dashboard-http.service=api@internal"
+
+      # HTTPS 라우터 (메인)
+      - "traefik.http.routers.dashboard.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.service=api@internal"
+{% if traefik_dashboard_auth is defined %}
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth,dashboard-strip"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${DASHBOARD_AUTH}"
+      - "traefik.http.middlewares.dashboard-strip.stripprefix.prefixes=/traefik"
+{% endif %}
+{% endif %}
+
+networks:
+  {{ traefik_network }}:
+    name: {{ traefik_network }}
+    driver: bridge

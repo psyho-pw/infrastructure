@@ -1,0 +1,94 @@
+---
+# Pi 서버 - 비민감 정보
+
+# 서버 기본 정보
+server_name: "pi-server"
+domain: "{{ vault_domain }}"
+
+# 방화벽 설정
+firewall_enabled: true
+firewall_allowed_tcp_ports:
+  - 22    # SSH
+  - 80    # HTTP
+  - 443   # HTTPS
+  - 8080  # Squid Proxy
+  - 9092  # Kafka
+
+# Traefik 설정
+traefik_dashboard_domain: "{{ vault_traefik_domain }}"
+traefik_acme_email: "{{ vault_traefik_acme_email }}"
+traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth }}"
+
+# Traefik 추가 진입점 (Kafka, Squid)
+traefik_custom_entrypoints:
+  kafka:
+    address: ":9092"
+  squid:
+    address: ":8080"
+    transport:
+      respondingTimeouts:
+        readTimeout: 0
+        writeTimeout: 0
+        idleTimeout: 3600s
+
+# Traefik 추가 포트
+traefik_custom_ports:
+  - "9092:9092"
+  - "8080:8080"
+
+# Kafka 설정
+kafka_enabled: true
+kafka_dir: "{{ base_dir }}/kafka"
+kafka_version: "{{ vault_kafka_version }}"
+kafka_node_id: 1
+kafka_process_roles: "broker,controller"
+kafka_controller_quorum_voters: "1@kafka:9093"
+kafka_controller_listener_names: "CONTROLLER"
+
+# Kafka 인증 (vault에서 가져옴)
+kafka_admin_user: "{{ vault_kafka_admin_user }}"
+kafka_admin_password: "{{ vault_kafka_admin_password }}"
+kafka_client_user: "{{ vault_kafka_client_user }}"
+kafka_client_password: "{{ vault_kafka_client_password }}"
+kafka_cluster_id: "{{ vault_kafka_cluster_id }}"
+
+# Kafka Replication
+kafka_offsets_topic_replication_factor: 1
+kafka_transaction_state_log_min_isr: 1
+kafka_transaction_state_log_replication_factor: 1
+kafka_group_initial_rebalance_delay_ms: 0
+
+# Kafka Topic
+kafka_auto_create_topics_enable: "true"
+kafka_num_partitions: 3
+kafka_default_replication_factor: 1
+
+# Kafka Log
+kafka_log_retention_hours: 168
+kafka_log_segment_bytes: 1073741824
+kafka_log_dirs: "/var/lib/kafka/data"
+
+# Kafka UI (vault에서 가져옴)
+kafka_ui_enabled: true
+kafka_ui_version: "{{ vault_kafka_ui_version }}"
+kafka_ui_cluster_name: "{{ vault_kafka_ui_cluster_name }}"
+kafka_ui_auth_type: "{{ vault_kafka_ui_auth_type }}"
+kafka_ui_admin_user: "{{ vault_kafka_ui_admin_user }}"
+kafka_ui_admin_password: "{{ vault_kafka_ui_admin_password }}"
+kafka_ui_dynamic_config_enabled: "{{ vault_kafka_ui_dynamic_config_enabled }}"
+
+# Squid Proxy 설정
+squid_enabled: true
+squid_dir: "{{ base_dir }}/squid"
+squid_image: "ubuntu/squid:latest"
+squid_port: 3128
+squid_use_auth: true
+squid_user: "{{ vault_squid_user }}"
+squid_password: "{{ vault_squid_password }}"
+squid_use_blocked_sites: true
+
+# Docker 네트워크
+docker_custom_networks:
+  - name: kafka-network
+    driver: bridge
+    state: present

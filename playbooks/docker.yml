@@ -1,0 +1,10 @@
+---
+# Docker installation playbook
+
+- name: Install and configure Docker
+  hosts: docker_hosts
+  gather_facts: yes
+  become: yes
+  roles:
+    - docker
+  tags: [docker]

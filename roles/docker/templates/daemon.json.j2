@@ -1,0 +1,8 @@
+{
+  "log-driver": "{{ docker_daemon_options['log-driver'] | default('json-file') }}",
+  "log-opts": {
+    "max-size": "{{ docker_daemon_options['log-opts']['max-size'] | default('10m') }}",
+    "max-file": "{{ docker_daemon_options['log-opts']['max-file'] | default('3') }}"
+  },
+  "storage-driver": "{{ docker_daemon_options['storage-driver'] | default('overlay2') }}"
+}

@@ -3,6 +3,9 @@
 .vscode/
 *.iml
 .claude
+*.swp
+*.swo
+*~
 
 # OS
 .DS_Store
@@ -22,3 +25,23 @@ logs/
 id_rsa
 id_rsa.pub
 known_hosts
+
+# Ansible Vault
+.vault_pass
+vault_pass.txt
+
+# Ansible
+*.retry
+ansible.log
+/tmp/ansible_facts
+
+# Data directories
+**/data/
+**/letsencrypt/
+**/conf/squid.passwd
+**/conf/ips.conf
+**/conf/blocked-sites.conf
+
+# Backup files
+*.bak
+*.backup

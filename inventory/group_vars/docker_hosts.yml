@@ -1,0 +1,19 @@
+---
+# Docker가 설치될 모든 호스트에 적용되는 변수
+
+# Docker daemon 설정
+docker_daemon_options:
+  log-driver: "json-file"
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+  storage-driver: "overlay2"
+
+# Docker 네트워크
+docker_networks:
+  - name: proxy
+    driver: bridge
+    state: present
+
+# Docker 로그 로테이션
+docker_log_rotation: true

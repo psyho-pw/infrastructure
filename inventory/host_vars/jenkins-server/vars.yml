@@ -1,0 +1,17 @@
+---
+# Jenkins 서버 전용 변수
+
+server_name: "jenkins-server"
+domain: "jenkins.example.com"  # CHANGE THIS
+
+# Traefik 설정 (민감 정보는 vault.yml에서 참조)
+traefik_acme_email: "{{ vault_traefik_acme_email }}"
+
+# Jenkins 설정
+jenkins_enabled: true
+jenkins_version: "lts"
+jenkins_port: 8080
+jenkins_agent_port: 50000
+
+# Jenkins 디렉토리
+jenkins_home: "{{ data_dir }}/jenkins"
