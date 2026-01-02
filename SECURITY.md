@@ -89,57 +89,6 @@ ansible-playbook playbooks/pi.yml --ask-vault-pass
 ansible-playbook playbooks/pi.yml --vault-password-file .vault_pass
 ```
 
-## 초기 설정 워크플로우
-
-### vault 파일 수정
-
-```bash
-# 1. Pi 서버 vault 파일 수정 (아직 암호화 안 됨)
-vim host_vars/pi-server/vault.yml
-
-# 실제 값으로 변경:
-# - vault_traefik_acme_email
-# - vault_traefik_dashboard_auth (htpasswd 생성)
-# - vault_kafka_cluster_id (kafka-storage random-uuid 실행)
-# - vault_kafka_admin_password
-# - vault_kafka_client_password
-# - vault_kafka_ui_admin_password
-```
-
-### htpasswd 생성
-
-```bash
-# Apache htpasswd 설치 (없는 경우)
-# macOS: brew install httpd
-# Ubuntu: sudo apt install apache2-utils
-
-# Basic Auth 비밀번호 생성
-htpasswd -nb admin your-password
-# 출력: admin:$apr1$...
-
-# 출력값을 vault.yml의 vault_traefik_dashboard_auth에 복사
-```
-
-### Kafka 클러스터 ID 생성
-
-```bash
-# Kafka 컨테이너로 UUID 생성
-docker run --rm confluentinc/cp-kafka:7.5.0 kafka-storage random-uuid
-# 출력: MkU3OEVBNTcwNTJENDM2Qk
-
-# 출력값을 vault.yml의 vault_kafka_cluster_id에 복사
-```
-
-### vault 파일 암호화
-
-```bash
-# 모든 vault 파일 암호화
-ansible-vault encrypt host_vars/*/vault.yml
-
-# 또는 개별 암호화
-ansible-vault encrypt host_vars/pi-server/vault.yml
-```
-
 ### 배포
 
 ```bash
