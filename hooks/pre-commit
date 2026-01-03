@@ -11,7 +11,7 @@ set -e
 echo "🔍 Running ansible-lint..."
 
 # ansible-lint 실행
-if ! ANSIBLE_VAULT_PASSWORD_FILE=.vault_pass ansible-lint --fix; then
+if ! make lint; then
     echo "❌ ansible-lint failed. Please fix the issues before committing."
     exit 1
 fi

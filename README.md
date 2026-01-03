@@ -321,11 +321,13 @@ make install-hooks
 설치 후 `git commit` 실행 시 자동으로 ansible-lint가 실행되며, 문제가 있으면 커밋이 차단됩니다.
 
 **Hook 동작:**
+
 - 커밋 전 ansible-lint 자동 실행
 - `--fix` 옵션으로 자동 수정 가능한 문제는 자동 수정
 - 린트 통과해야만 커밋 가능
 
 **Hook 비활성화 (임시):**
+
 ```bash
 # 특정 커밋만 hook 건너뛰기
 git commit --no-verify -m "message"

@@ -130,7 +130,7 @@ clean: ## clean Ansible logs
 	find .ansible/tmp -type f -delete 2>/dev/null || true
 
 lint: ## lint Ansible files
-	ansible-lint --fix
+	ANSIBLE_VAULT_PASSWORD_FILE=$(VAULT_PASS) ansible-lint --fix
 
 install-hooks: ## install git hooks for pre-commit linting
 	@echo "Installing git hooks..."
