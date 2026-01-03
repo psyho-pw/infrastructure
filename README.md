@@ -125,58 +125,64 @@ infrastructure/
 
 ## Usage
 
+### Quick Start with Makefile
+
+Makefile을 사용해 Ansible 명령어를 관리합니다.
+
+```bash
+# 도움말 보기
+make help
+
+# Ansible collections 설치 (처음 한 번만)
+make install
+
+# 서버 연결 테스트
+make check
+```
+
 ### 전체 인프라 배포
 
 ```bash
 # 모든 서버에 전체 스택 배포
-ansible-playbook playbooks/site.yml
+make deploy-all
 
-# 특정 태그만 실행
-ansible-playbook playbooks/site.yml --tags docker
-ansible-playbook playbooks/site.yml --tags traefik
+# Dry-run으로 먼저 확인
+make dry-run
 ```
 
 ### 개별 서버 배포
 
 ```bash
 # Pi 서버만 배포
-ansible-playbook playbooks/pi.yml
+make deploy-pi
 
 # DB 서버만 배포
-ansible-playbook playbooks/db.yml
+make deploy-db
 
 # Jenkins 서버만 배포
-ansible-playbook playbooks/jenkins.yml
+make deploy-jenkins
 ```
 
 ### 특정 역할만 실행
 
 ```bash
 # Docker만 설치
-ansible-playbook playbooks/docker.yml
+make deploy-docker
 
 # Traefik만 배포
-ansible-playbook playbooks/traefik.yml
-```
-
-### 특정 호스트에만 실행
-
-```bash
-# Pi 서버에만 실행
-ansible-playbook playbooks/site.yml --limit pi
-
-# 여러 호스트 지정
-ansible-playbook playbooks/site.yml --limit pi,jenkins
+make deploy-traefik
 ```
 
 ### Dry-run
 
 ```bash
-# 실제 변경 없이 확인만
-ansible-playbook playbooks/site.yml --check
+# 전체 인프라 dry-run
+make dry-run
 
-# 차이점 표시
-ansible-playbook playbooks/site.yml --check --diff
+# 특정 서버 dry-run
+make dry-run-pi
+make dry-run-db
+make dry-run-jenkins
 ```
 
 ## Host server directory structure
@@ -240,30 +246,51 @@ Ansible 배포 후 각 서버의 디렉토리 구조:
 
 ```bash
 # SSH 연결 확인
-ansible all -m ping -vvv
+make ping
+
+# 상세 디버깅 (직접 ansible 명령어 사용)
+ansible all -i inventory/production -m ping -vvv
 
 # 특정 호스트 디버깅
-ansible pi -m setup
+ansible pi -i inventory/production -m setup
 ```
 
 ### 서비스 상태 확인
 
 ```bash
 # Docker 컨테이너 상태 확인
-ansible all -m shell -a "docker ps"
+make docker-ps
 
-# 로그 확인
-ansible pi -m shell -a "docker logs traefik"
+# 특정 서비스 로그 확인
+make docker-logs HOST=pi SERVICE=traefik
+make docker-logs HOST=db SERVICE=postgres
 ```
 
 ### 변수 확인
 
 ```bash
 # 호스트 변수 확인
-ansible-inventory --host pi-server
+ansible-inventory -i inventory/production --host pi-server
 
 # 그룹 변수 확인
-ansible-inventory --graph
+ansible-inventory -i inventory/production --graph
+```
+
+### Vault 관리
+
+```bash
+# Vault 파일 편집
+make vault-edit FILE=inventory/host_vars/pi-server/vault.yml
+
+# Vault 파일 보기
+make vault-view FILE=inventory/host_vars/pi-server/vault.yml
+```
+
+### 로그 정리
+
+```bash
+# Ansible 로그 파일 정리
+make clean
 ```
 
 ## Plugins
