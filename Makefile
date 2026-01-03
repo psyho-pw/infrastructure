@@ -1,6 +1,6 @@
 .PHONY: help install check deploy deploy-all deploy-pi deploy-db deploy-jenkins \
         deploy-docker deploy-traefik dry-run dry-run-pi dry-run-db dry-run-jenkins \
-        vault-decrypt vault-encrypt ping docker-logs docker-ps clean
+        vault-decrypt vault-encrypt ping docker-logs docker-ps clean lint install-hooks
 
 INVENTORY := inventory/production
 VAULT_PASS := .vault_pass
@@ -130,4 +130,11 @@ clean: ## clean Ansible logs
 	find .ansible/tmp -type f -delete 2>/dev/null || true
 
 lint: ## lint Ansible files
-	ansible-lint --fix 
+	ansible-lint --fix
+
+install-hooks: ## install git hooks for pre-commit linting
+	@echo "Installing git hooks..."
+	@ln -sf ../../hooks/pre-commit .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-commit
+	@echo "✅ Git hooks installed successfully!"
+	@echo "   pre-commit hook will run ansible-lint before each commit"

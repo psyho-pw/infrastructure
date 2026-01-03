@@ -1,0 +1,24 @@
+#!/bin/bash
+# Pre-commit hook: Ansible lint 실행
+#
+# 설치 방법:
+#   make install-hooks
+# 또는
+#   ln -sf ../../hooks/pre-commit .git/hooks/pre-commit
+
+set -e
+
+echo "🔍 Running ansible-lint..."
+
+# ansible-lint 실행
+if ! ANSIBLE_VAULT_PASSWORD_FILE=.vault_pass ansible-lint --fix; then
+    echo "❌ ansible-lint failed. Please fix the issues before committing."
+    exit 1
+fi
+
+echo "✅ ansible-lint passed!"
+
+# 변경된 파일이 있으면 스테이징
+git diff --name-only | grep -E '\.(ya?ml)$' | xargs -r git add 2>/dev/null || true
+
+exit 0

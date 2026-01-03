@@ -293,10 +293,47 @@ make vault-view FILE=inventory/host_vars/pi-server/vault.yml
 make clean
 ```
 
+## Development
+
+### Code Quality
+
+#### Linting
+
+프로젝트는 ansible-lint를 사용하여 코드 품질을 관리합니다.
+
+```bash
+# 전체 프로젝트 린트 실행
+make lint
+
+# 자동 수정 포함
+ansible-lint --fix
+```
+
+#### Git Hooks
+
+커밋 전에 자동으로 ansible-lint를 실행하도록 설정할 수 있습니다.
+
+```bash
+# Git hooks 설치
+make install-hooks
+```
+
+설치 후 `git commit` 실행 시 자동으로 ansible-lint가 실행되며, 문제가 있으면 커밋이 차단됩니다.
+
+**Hook 동작:**
+- 커밋 전 ansible-lint 자동 실행
+- `--fix` 옵션으로 자동 수정 가능한 문제는 자동 수정
+- 린트 통과해야만 커밋 가능
+
+**Hook 비활성화 (임시):**
+```bash
+# 특정 커밋만 hook 건너뛰기
+git commit --no-verify -m "message"
+```
+
 ## Plugins
 
 ### vscode
 
 - Ansible language support
 - Better Jinja -> jinja + yml, jinja + html 등 복함 syntax highlight 지원
-  
