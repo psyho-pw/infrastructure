@@ -1,0 +1,81 @@
+---
+# PostgreSQL role - Docker Compose를 사용한 PostgreSQL 설치
+
+- name: Create PostgreSQL directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ postgresql_base_dir }}"
+    - "{{ postgresql_data_dir }}"
+    - "{{ postgresql_init_scripts_dir }}"
+  tags: [postgresql, directories]
+
+- name: Deploy PostgreSQL environment file
+  ansible.builtin.template:
+    src: postgres.env.j2
+    dest: "{{ postgresql_compose_dir }}/.env"
+    mode: '0600'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart PostgreSQL
+  tags: [postgresql, env]
+
+- name: Deploy PostgreSQL docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ postgresql_compose_dir }}/docker-compose.yml"
+    mode: '0644'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart PostgreSQL
+  tags: [postgresql, compose]
+
+- name: Create Docker networks for PostgreSQL
+  community.docker.docker_network:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ postgresql_networks }}"
+  when: postgresql_networks | default([]) | length > 0
+  tags: [postgresql, networks]
+
+- name: Start PostgreSQL container
+  community.docker.docker_compose_v2:
+    project_src: "{{ postgresql_compose_dir }}"
+    state: present
+  register: postgresql_output
+  tags: [postgresql, start]
+
+- name: Wait for PostgreSQL to be ready
+  ansible.builtin.wait_for:
+    host: localhost
+    port: "{{ postgresql_host_port }}"
+    delay: 5
+    timeout: 60
+    state: started
+  when: postgresql_expose_port | default(false)
+  tags: [postgresql, healthcheck]
+
+- name: Check PostgreSQL health via Docker
+  ansible.builtin.command:
+    cmd: docker exec postgres pg_isready -U {{ postgresql_user }}
+  register: postgres_health
+  retries: 12
+  delay: 5
+  until: postgres_health.rc == 0
+  changed_when: false
+  when: not (postgresql_expose_port | default(false))
+  tags: [postgresql, healthcheck]
+
+- name: Display PostgreSQL connection info
+  ansible.builtin.debug:
+    msg:
+      - "PostgreSQL is running!"
+      - "Internal: localhost:{{ postgresql_host_port }} (if exposed)"
+      - "User: {{ postgresql_user }}"
+      - "Database: {{ postgresql_default_db }}"
+      - "Note: Password is stored in .env file"
+  tags: [postgresql, info]

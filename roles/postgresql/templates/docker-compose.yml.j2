@@ -1,0 +1,54 @@
+---
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:{{ postgresql_version }}
+    container_name: postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - {{ postgresql_data_dir }}:/var/lib/postgresql/data
+{% if postgresql_init_scripts_dir is defined %}
+      - {{ postgresql_init_scripts_dir }}:/docker-entrypoint-initdb.d
+{% endif %}
+{% if postgresql_expose_port | default(false) %}
+    ports:
+      - "{{ postgresql_host_port }}:5432"
+{% endif %}
+{% if postgresql_networks | default([]) | length > 0 %}
+    networks:
+{% for network in postgresql_networks %}
+      - {{ network }}
+{% endfor %}
+{% endif %}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgresql_user }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+
+      # TCP 라우터 설정 (TLS 종료, db.psyho.kr 인증서 사용)
+      - "traefik.tcp.routers.postgres.rule=HostSNI(`{{ postgresql_tls_domain | default('*') }}`)"
+      - "traefik.tcp.routers.postgres.entrypoints=postgres"
+{% if postgresql_tls_domain is defined %}
+      - "traefik.tcp.routers.postgres.tls.certresolver=letsencrypt"
+      - "traefik.tcp.routers.postgres.tls.domains[0].main={{ postgresql_tls_domain }}"
+{% endif %}
+      - "traefik.tcp.routers.postgres.service=postgres-svc"
+
+      # TCP 서비스 설정
+      - "traefik.tcp.services.postgres-svc.loadbalancer.server.port=5432"
+
+{% if postgresql_networks | default([]) | length > 0 %}
+networks:
+{% for network in postgresql_networks %}
+  {{ network }}:
+    external: true
+{% endfor %}
+{% endif %}

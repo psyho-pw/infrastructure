@@ -10,4 +10,18 @@
     - docker
   tags: [common, docker]
 
-# TODO: Add database-specific roles (PostgreSQL, MySQL, etc.)
+- name: Deploy Traefik
+  hosts: db
+  gather_facts: true
+  become: true
+  roles:
+    - traefik
+  tags: [traefik]
+
+- name: Deploy PostgreSQL
+  hosts: db
+  gather_facts: true
+  become: true
+  roles:
+    - postgresql
+  tags: [postgresql]

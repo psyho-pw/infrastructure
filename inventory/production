@@ -2,7 +2,7 @@
 
 # 데이터베이스 서버
 [db]
-db-server ansible_host=<DB_SERVER_IP> ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/sayhoOracle/sayho
+db-server ansible_host=db.psyho.kr ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/sayhoOracle/sayho
 
 # CI/CD 서버
 [jenkins]
