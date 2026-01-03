@@ -3,35 +3,35 @@
 
 - name: Configure all servers
   hosts: all_servers
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - common
 
 - name: Setup Docker on all hosts
   hosts: docker_hosts
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - docker
 
 - name: Setup Traefik on designated hosts
   hosts: traefik_hosts
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - traefik
 
 - name: Setup Kafka on Pi server
   hosts: pi
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - kafka
 
 - name: Setup Squid Proxy on Pi server
   hosts: pi
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - squid_proxy

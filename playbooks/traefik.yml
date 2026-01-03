@@ -3,8 +3,8 @@
 
 - name: Deploy Traefik reverse proxy
   hosts: traefik_hosts
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - traefik
   tags: [traefik]

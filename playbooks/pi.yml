@@ -3,8 +3,8 @@
 
 - name: Configure Pi server base
   hosts: pi
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - common
     - docker
@@ -12,24 +12,24 @@
 
 - name: Deploy Traefik on Pi
   hosts: pi
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - traefik
   tags: [traefik]
 
 - name: Deploy Kafka cluster on Pi
   hosts: pi
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - kafka
   tags: [kafka]
 
 - name: Deploy Squid Proxy on Pi
   hosts: pi
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - squid_proxy
   tags: [squid]

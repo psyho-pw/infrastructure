@@ -3,8 +3,8 @@
 
 - name: Configure Jenkins server
   hosts: jenkins
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - common
     - docker

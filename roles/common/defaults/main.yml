@@ -1,5 +1,0 @@
----
-# Common role defaults
-
-timezone: "UTC"
-firewall_enabled: false

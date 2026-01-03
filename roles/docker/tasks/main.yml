@@ -10,7 +10,7 @@
       - gnupg
       - lsb-release
     state: present
-    update_cache: yes
+    update_cache: true
   tags: [docker, dependencies]
 
 - name: Create directory for apt keyrings
@@ -28,9 +28,23 @@
     force: true
   tags: [docker, repository]
 
+- name: Determine Docker repository architecture
+  ansible.builtin.set_fact:
+    docker_arch: >-
+      {%- if ansible_facts['architecture'] == 'x86_64' -%}
+        amd64
+      {%- elif ansible_facts['architecture'] == 'aarch64' -%}
+        arm64
+      {%- else -%}
+        armhf
+      {%- endif -%}
+
 - name: Add Docker repository
   ansible.builtin.apt_repository:
-    repo: "deb [arch={{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'armhf' }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }} {{ ansible_facts['distribution_release'] }} stable"
+    repo: >-
+      deb [arch={{ docker_arch }} signed-by=/etc/apt/keyrings/docker.asc]
+      https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}
+      {{ ansible_facts['distribution_release'] }} stable
     filename: docker
     state: present
   tags: [docker, repository]
@@ -42,7 +56,7 @@
       - docker-ce-cli
       - containerd.io
     state: present
-    update_cache: yes
+    update_cache: true
   tags: [docker, install]
 
 - name: Install Docker Compose plugin
@@ -55,7 +69,7 @@
   ansible.builtin.user:
     name: "{{ item }}"
     groups: docker
-    append: yes
+    append: true
   loop: "{{ docker_users }}"
   when: docker_users is defined
   tags: [docker, users]
@@ -72,7 +86,7 @@
   ansible.builtin.systemd:
     name: docker
     state: started
-    enabled: yes
+    enabled: true
   tags: [docker, service]
 
 - name: Create Docker networks

@@ -3,7 +3,7 @@
   <component name="WebServers">
     <option name="servers">
       <webServer id="5ea27464-d675-442e-a7b4-dfa37b94206f" name="local.psyho.kr">
-        <fileTransfer rootFolder="/home/sayho" accessType="SFTP" host="local.psyho.kr" port="22" sshConfigId="bf66b880-1b4b-46b6-869e-eefb5bd02921" sshConfig="local.psyho.kr">
+        <fileTransfer rootFolder="/home/sayho" accessType="SFTP" host="local.psyho.kr" port="22" sshConfigId="bf66b880-1b4b-46b6-869e-eefb5bd02921" sshConfig="local.psyho.kr" keyPair="true">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
           </advancedOptions>
