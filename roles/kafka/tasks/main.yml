@@ -10,7 +10,7 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    mode: '0755'
+    mode: "0755"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
   loop:
@@ -22,7 +22,7 @@
   ansible.builtin.file:
     path: "{{ kafka_dir }}/data"
     state: directory
-    mode: '0755'
+    mode: "0755"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
   tags: [kafka, directories]
@@ -31,14 +31,14 @@
   ansible.builtin.template:
     src: init-kafka-users.sh.j2
     dest: "{{ kafka_dir }}/scripts/init-kafka-users.sh"
-    mode: '0644'
+    mode: "0644"
   tags: [kafka, scripts]
 
 - name: Create Kafka docker compose file
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ kafka_dir }}/compose.yml"
-    mode: '0644'
+    mode: "0644"
   notify: Restart Kafka
   tags: [kafka, compose]
 
@@ -46,7 +46,7 @@
   ansible.builtin.template:
     src: kafka.env.j2
     dest: "{{ kafka_dir }}/.env"
-    mode: '0600'
+    mode: "0600"
   notify: Restart Kafka
   tags: [kafka, env]
 

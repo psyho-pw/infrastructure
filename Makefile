@@ -128,3 +128,6 @@ dry-run-jenkins: ## dry-run Jenkins server
 clean: ## clean Ansible logs
 	rm -f ansible.log
 	find .ansible/tmp -type f -delete 2>/dev/null || true
+
+lint: ## lint Ansible files
+	ansible-lint --fix 

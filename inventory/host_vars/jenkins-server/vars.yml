@@ -2,7 +2,7 @@
 # Jenkins 서버 전용 변수
 
 server_name: "jenkins-server"
-domain: "jenkins.example.com"  # CHANGE THIS
+domain: "jenkins.example.com" # CHANGE THIS
 
 # Traefik 설정 (민감 정보는 vault.yml에서 참조)
 traefik_acme_email: "{{ vault_traefik_acme_email }}"

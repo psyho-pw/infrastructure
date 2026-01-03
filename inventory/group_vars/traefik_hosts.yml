@@ -27,7 +27,7 @@ traefik_entrypoints:
     address: ":443"
 
 # Let's Encrypt 설정 (호스트별로 오버라이드)
-traefik_acme_email: "admin@example.com"  # CHANGE THIS
+traefik_acme_email: "admin@example.com" # CHANGE THIS
 traefik_acme_storage: "/letsencrypt/acme.json"
 
 # Traefik 대시보드

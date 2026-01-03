@@ -2,7 +2,7 @@
 # Test 서버 전용 변수
 
 server_name: "test-server"
-domain: "test.example.com"  # CHANGE THIS
+domain: "test.example.com" # CHANGE THIS
 
 # Traefik 설정 (민감 정보는 vault.yml에서 참조)
 traefik_acme_email: "{{ vault_traefik_acme_email }}"

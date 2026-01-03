@@ -17,9 +17,9 @@ base_dir: "/home/{{ ansible_user }}/server"
 
 # 방화벽 설정
 firewall_allowed_tcp_ports:
-  - 22    # SSH
-  - 80    # HTTP
-  - 443   # HTTPS
+  - 22 # SSH
+  - 80 # HTTP
+  - 443 # HTTPS
 
 # 공통 패키지
 common_packages:

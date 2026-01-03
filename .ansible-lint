@@ -1,0 +1,19 @@
+---
+# 제외할 경로
+exclude_paths:
+  - .git/
+  - .idea/
+  - .vscode/
+  - .claude/
+  - inventory/host_vars/*/vault.yml
+
+# 건너뛸 규칙들
+skip_list: []
+# 경고로만 표시할 규칙
+warn_list:
+  - experimental
+  - no-changed-when
+  - no-handler
+
+# 프로파일 설정
+profile: production

@@ -5,7 +5,7 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    mode: '0755'
+    mode: "0755"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
   loop:
@@ -18,7 +18,7 @@
   ansible.builtin.template:
     src: postgres.env.j2
     dest: "{{ postgresql_compose_dir }}/.env"
-    mode: '0600'
+    mode: "0600"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
   notify: Restart PostgreSQL
@@ -28,7 +28,7 @@
   ansible.builtin.template:
     src: docker-compose.yml.j2
     dest: "{{ postgresql_compose_dir }}/docker-compose.yml"
-    mode: '0644'
+    mode: "0644"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
   notify: Restart PostgreSQL
@@ -62,10 +62,10 @@
 - name: Check PostgreSQL health via Docker
   ansible.builtin.command:
     cmd: docker exec postgres pg_isready -U {{ postgresql_user }}
-  register: postgres_health
+  register: postgresql_health
   retries: 12
   delay: 5
-  until: postgres_health.rc == 0
+  until: postgresql_health.rc == 0
   changed_when: false
   when: not (postgresql_expose_port | default(false))
   tags: [postgresql, healthcheck]

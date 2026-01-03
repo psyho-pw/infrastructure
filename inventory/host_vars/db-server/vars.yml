@@ -8,12 +8,12 @@ domain: "{{ vault_domain }}"
 # 방화벽 설정
 firewall_enabled: true
 firewall_allowed_tcp_ports:
-  - 22    # SSH
-  - 80    # HTTP
-  - 443   # HTTPS
-  - 5432  # PostgreSQL
+  - 22 # SSH
+  - 80 # HTTP
+  - 443 # HTTPS
+  - 5432 # PostgreSQL
 
-# Traefik 설정 
+# Traefik 설정
 traefik_dashboard_domain: "{{ vault_traefik_domain }}"
 traefik_acme_email: "{{ vault_traefik_acme_email }}"
 traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth }}"
@@ -30,7 +30,7 @@ traefik_custom_entrypoints:
 
 # Traefik 커스텀 포트
 traefik_custom_ports:
-  - "5432:5432"  # PostgreSQL TLS 포트
+  - "5432:5432" # PostgreSQL TLS 포트
 
 # PostgreSQL 설정
 postgresql_version: "{{ vault_postgresql_version }}"
@@ -40,7 +40,7 @@ postgresql_default_db: "{{ vault_postgresql_default_db }}"
 
 # PostgreSQL 포트 설정
 postgresql_host_port: 5432
-postgresql_expose_port: false  # Traefik 사용시 false 권장 (true면 localhost:5432 직접 접근 가능)
+postgresql_expose_port: false # Traefik 사용시 false 권장 (true면 localhost:5432 직접 접근 가능)
 
 # PostgreSQL 디렉토리 설정
 postgresql_base_dir: "{{ db_data_dir }}/postgresql"

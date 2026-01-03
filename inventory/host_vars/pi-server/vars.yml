@@ -8,11 +8,11 @@ domain: "{{ vault_domain }}"
 # 방화벽 설정
 firewall_enabled: true
 firewall_allowed_tcp_ports:
-  - 22    # SSH
-  - 80    # HTTP
-  - 443   # HTTPS
-  - 8080  # Squid Proxy
-  - 9092  # Kafka
+  - 22 # SSH
+  - 80 # HTTP
+  - 443 # HTTPS
+  - 8080 # Squid Proxy
+  - 9092 # Kafka
 
 # Traefik 설정
 traefik_dashboard_domain: "{{ vault_traefik_domain }}"

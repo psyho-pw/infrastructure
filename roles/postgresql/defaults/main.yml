@@ -16,7 +16,7 @@ postgresql_host_port: 5432
 
 # 네트워크 설정 (선택사항)
 postgresql_networks: []
-  # - app-network
+# - app-network
 
 # Docker Compose 설정
 postgresql_compose_dir: "{{ postgresql_base_dir }}"
