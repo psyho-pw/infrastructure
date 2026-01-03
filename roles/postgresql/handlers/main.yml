@@ -1,0 +1,8 @@
+---
+# PostgreSQL handlers
+
+- name: Restart PostgreSQL
+  community.docker.docker_compose_v2:
+    project_src: "{{ postgresql_compose_dir }}"
+    state: restarted
+  tags: [postgresql]

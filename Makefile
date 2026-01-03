@@ -1,6 +1,6 @@
 .PHONY: help install check deploy deploy-all deploy-pi deploy-db deploy-jenkins \
         deploy-docker deploy-traefik dry-run dry-run-pi dry-run-db dry-run-jenkins \
-        vault-edit vault-view ping docker-logs docker-ps clean
+        vault-decrypt vault-encrypt ping docker-logs docker-ps clean
 
 INVENTORY := inventory/production
 VAULT_PASS := .vault_pass
@@ -50,19 +50,35 @@ deploy: ## deploy infrastructure (TARGET=all|pi|db|jenkins|docker|traefik, DRY_R
 		ansible-playbook -i $(INVENTORY) $$PLAYBOOK; \
 	fi
 
-vault-edit: ## edit Vault file (example: make vault-edit FILE=inventory/host_vars/pi-server/vault.yml)
-	@if [ -z "$(FILE)" ]; then \
-		echo "Error: FILE 변수를 지정해주세요. 예: make vault-edit FILE=inventory/host_vars/pi-server/vault.yml"; \
+vault-decrypt: ## decrypt Vault file (example: make vault-decrypt HOST=pi-server)
+	@if [ -z "$(HOST)" ]; then \
+		echo "Error: HOST 변수를 지정해주세요. 예: make vault-decrypt HOST=pi-server"; \
 		exit 1; \
 	fi
-	ansible-vault edit $(FILE) --vault-password-file $(VAULT_PASS)
+	@FILE_PATH="inventory/host_vars/$(HOST)/vault.yml"; \
+	if [ ! -f "$$FILE_PATH" ]; then \
+		echo "Error: 파일을 찾을 수 없습니다: $$FILE_PATH"; \
+		exit 1; \
+	fi; \
+	echo "Decrypting: $$FILE_PATH"; \
+	ansible-vault decrypt $$FILE_PATH --vault-password-file $(VAULT_PASS)
 
-vault-view: ## view Vault file (example: make vault-view FILE=inventory/host_vars/pi-server/vault.yml)
-	@if [ -z "$(FILE)" ]; then \
-		echo "Error: FILE 변수를 지정해주세요. 예: make vault-view FILE=inventory/host_vars/pi-server/vault.yml"; \
+vault-encrypt: ## encrypt Vault file (example: make vault-encrypt HOST=pi-server)
+	@if [ -z "$(HOST)" ]; then \
+		echo "Error: HOST 변수를 지정해주세요. 예: make vault-encrypt HOST=pi-server"; \
 		exit 1; \
 	fi
-	ansible-vault view $(FILE) --vault-password-file $(VAULT_PASS)
+	@FILE_PATH="inventory/host_vars/$(HOST)/vault.yml"; \
+	if [ ! -f "$$FILE_PATH" ]; then \
+		echo "Error: 파일을 찾을 수 없습니다: $$FILE_PATH"; \
+		exit 1; \
+	fi; \
+	if head -n 1 "$$FILE_PATH" | grep -q '$$ANSIBLE_VAULT'; then \
+		echo "Error: 파일이 이미 암호화되어 있습니다: $$FILE_PATH"; \
+		exit 1; \
+	fi; \
+	echo "Encrypting: $$FILE_PATH"; \
+	ansible-vault encrypt $$FILE_PATH --vault-password-file $(VAULT_PASS) --encrypt-vault-id default
 
 ping: ## check all servers connection
 	ansible all -i $(INVENTORY) -m ping

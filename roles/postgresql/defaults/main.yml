@@ -1,0 +1,23 @@
+---
+# PostgreSQL role defaults
+
+postgresql_version: "16"
+postgresql_user: "postgres"
+postgresql_password: "changeme"
+postgresql_default_db: "postgres"
+
+# 디렉토리 설정
+postgresql_base_dir: "{{ data_dir | default('/opt/docker') }}/postgresql"
+postgresql_data_dir: "{{ postgresql_base_dir }}/data"
+postgresql_init_scripts_dir: "{{ postgresql_base_dir }}/init"
+
+# 포트 설정
+postgresql_host_port: 5432
+
+# 네트워크 설정 (선택사항)
+postgresql_networks: []
+  # - app-network
+
+# Docker Compose 설정
+postgresql_compose_dir: "{{ postgresql_base_dir }}"
+postgresql_service_name: "postgres"

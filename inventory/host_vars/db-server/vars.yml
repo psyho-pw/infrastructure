@@ -1,21 +1,57 @@
 ---
-# DB 서버 전용 변수
+# DB 서버 - 비민감 정보
 
+# 서버 기본 정보
 server_name: "db-server"
-domain: "db.example.com"  # CHANGE THIS
+domain: "{{ vault_domain }}"
 
-# Traefik 비활성화 (DB 서버는 traefik 불필요할 수 있음)
-traefik_enabled: false
+# 방화벽 설정
+firewall_enabled: true
+firewall_allowed_tcp_ports:
+  - 22    # SSH
+  - 80    # HTTP
+  - 443   # HTTPS
+  - 5432  # PostgreSQL
 
-# PostgreSQL 설정 (예시)
-postgresql_enabled: false
-postgresql_version: "16"
-postgresql_port: 5432
+# Traefik 설정 
+traefik_dashboard_domain: "{{ vault_traefik_domain }}"
+traefik_acme_email: "{{ vault_traefik_acme_email }}"
+traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth }}"
 
-# MySQL 설정 (예시)
-mysql_enabled: false
-mysql_version: "8.0"
-mysql_port: 3306
+# Traefik 커스텀 진입점 (PostgreSQL TCP)
+traefik_custom_entrypoints:
+  postgres:
+    address: ":5432"
+    transport:
+      respondingTimeouts:
+        readTimeout: "0"
+        writeTimeout: "0"
+        idleTimeout: "180s"
+
+# Traefik 커스텀 포트
+traefik_custom_ports:
+  - "5432:5432"  # PostgreSQL TLS 포트
+
+# PostgreSQL 설정
+postgresql_version: "{{ vault_postgresql_version }}"
+postgresql_user: "{{ vault_postgresql_user }}"
+postgresql_password: "{{ vault_postgresql_password }}"
+postgresql_default_db: "{{ vault_postgresql_default_db }}"
+
+# PostgreSQL 포트 설정
+postgresql_host_port: 5432
+postgresql_expose_port: false  # Traefik 사용시 false 권장 (true면 localhost:5432 직접 접근 가능)
+
+# PostgreSQL 디렉토리 설정
+postgresql_base_dir: "{{ db_data_dir }}/postgresql"
+
+# PostgreSQL 네트워크 설정 (Traefik 연결)
+postgresql_networks:
+  - proxy
+
+# PostgreSQL Traefik 도메인 (TLS 접속용)
+# db.psyho.kr:5432로 접속 (db.psyho.kr의 인증서 사용)
+postgresql_tls_domain: "{{ domain }}"
 
 # 데이터 디렉토리
-db_data_dir: "{{ data_dir }}/databases"
+db_data_dir: "{{ base_dir }}/data"

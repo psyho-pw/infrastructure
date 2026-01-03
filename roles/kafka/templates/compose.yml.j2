@@ -113,10 +113,12 @@ services:
     labels:
       # Traefik TCP 라우팅 (Kafka)
       - "traefik.enable=true"
-      - "traefik.tcp.routers.kafka.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.kafka.rule=HostSNI(`${DOMAIN}`)"
       - "traefik.tcp.routers.kafka.entrypoints=kafka"
-      - "traefik.tcp.routers.kafka.tls=true"
-      - "traefik.tcp.services.kafka.loadbalancer.server.port=9092"
+      - "traefik.tcp.routers.kafka.tls.certresolver=letsencrypt"
+      - "traefik.tcp.routers.kafka.tls.domains[0].main=${DOMAIN}"
+      - "traefik.tcp.routers.kafka.service=kafka-svc"
+      - "traefik.tcp.services.kafka-svc.loadbalancer.server.port=9092"
 
   kafka-init:
     image: confluentinc/cp-kafka:${KAFKA_VERSION}
