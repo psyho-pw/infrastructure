@@ -265,3 +265,11 @@ ansible-inventory --host pi-server
 # 그룹 변수 확인
 ansible-inventory --graph
 ```
+
+## Plugins
+
+### vscode
+
+- Ansible language support
+- Better Jinja -> jinja + yml, jinja + html 등 복함 syntax highlight 지원
+  
