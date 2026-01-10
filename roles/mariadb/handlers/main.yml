@@ -1,0 +1,6 @@
+---
+# MariaDB handlers
+
+- name: Restart MariaDB
+  ansible.builtin.include_tasks: ../tasks/restart_mariadb.yml
+  tags: [mariadb]

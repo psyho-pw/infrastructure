@@ -25,3 +25,19 @@
   roles:
     - postgresql
   tags: [postgresql]
+
+- name: Deploy MariaDB
+  hosts: db
+  gather_facts: true
+  become: true
+  roles:
+    - mariadb
+  tags: [mariadb]
+
+- name: Deploy Redis
+  hosts: db
+  gather_facts: true
+  become: true
+  roles:
+    - redis
+  tags: [redis]

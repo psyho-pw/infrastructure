@@ -1,0 +1,54 @@
+#!/bin/bash
+# Traefik acme.json에서 인증서 추출 스크립트
+# 도메인: {{ mariadb_tls_domain }}
+
+ACME_JSON="{{ traefik_letsencrypt_dir | default(base_dir + '/traefik/letsencrypt') }}/acme.json"
+CERT_DIR="{{ mariadb_tls_cert_dir }}"
+DOMAIN="{{ mariadb_tls_domain }}"
+
+# 디렉토리 생성
+mkdir -p "$CERT_DIR"
+
+# jq가 설치되어 있는지 확인
+if ! command -v jq &> /dev/null; then
+    echo "jq is required but not installed."
+    exit 1
+fi
+
+# acme.json에서 인증서 추출
+# Let's Encrypt resolver에서 도메인에 해당하는 인증서 찾기
+CERT=$(jq -r --arg domain "$DOMAIN" '.letsencrypt.Certificates[] | select(.domain.main == $domain) | .certificate' "$ACME_JSON" 2>/dev/null)
+KEY=$(jq -r --arg domain "$DOMAIN" '.letsencrypt.Certificates[] | select(.domain.main == $domain) | .key' "$ACME_JSON" 2>/dev/null)
+
+if [ -z "$CERT" ] || [ "$CERT" == "null" ]; then
+    echo "Certificate for $DOMAIN not found in acme.json"
+    exit 1
+fi
+
+# Base64 디코딩 후 파일로 저장
+echo "$CERT" | base64 -d > "$CERT_DIR/cert.pem"
+echo "$KEY" | base64 -d > "$CERT_DIR/key.pem"
+
+# CA 인증서 (cert.pem에서 중간 인증서 추출)
+# fullchain에서 첫 번째는 서버 인증서, 나머지는 CA 체인
+csplit -f "$CERT_DIR/cert-" -b "%02d.pem" "$CERT_DIR/cert.pem" '/-----BEGIN CERTIFICATE-----/' '{*}' 2>/dev/null
+# 첫 번째 파일은 빈 파일이므로 삭제
+rm -f "$CERT_DIR/cert-00.pem"
+# 서버 인증서는 cert-01.pem
+# CA 체인은 나머지 (cert-02.pem 이후)
+if [ -f "$CERT_DIR/cert-02.pem" ]; then
+    cat "$CERT_DIR/cert-02.pem" "$CERT_DIR/cert-03.pem" 2>/dev/null > "$CERT_DIR/ca.pem"
+else
+    # CA 체인이 없으면 빈 파일 생성 (자체 서명 또는 루트 CA 직접 서명)
+    cp "$CERT_DIR/cert.pem" "$CERT_DIR/ca.pem"
+fi
+
+# 임시 파일 정리
+rm -f "$CERT_DIR/cert-"*.pem
+
+# 권한 설정
+chmod 644 "$CERT_DIR/cert.pem" "$CERT_DIR/ca.pem"
+chmod 600 "$CERT_DIR/key.pem"
+
+echo "Certificates extracted successfully to $CERT_DIR"
+ls -la "$CERT_DIR"

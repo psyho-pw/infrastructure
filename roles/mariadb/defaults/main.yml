@@ -1,0 +1,29 @@
+---
+# MariaDB role defaults
+
+mariadb_version: "11.4"
+mariadb_root_password: "changeme"
+mariadb_user: ""
+mariadb_password: ""
+mariadb_default_db: ""
+
+# 디렉토리 설정
+mariadb_base_dir: "{{ data_dir | default('/opt/docker') }}/mariadb"
+mariadb_data_dir: "{{ mariadb_base_dir }}/data"
+mariadb_init_scripts_dir: "{{ mariadb_base_dir }}/init"
+
+# 포트 설정
+mariadb_host_port: 3306
+
+# 네트워크 설정 (선택사항)
+mariadb_networks: []
+# - app-network
+
+# Docker Compose 설정
+mariadb_compose_dir: "{{ mariadb_base_dir }}"
+mariadb_service_name: "mariadb"
+
+# TLS 설정 (Traefik passthrough 모드)
+mariadb_tls_enabled: false
+mariadb_tls_cert_dir: "{{ mariadb_base_dir }}/certs"
+mariadb_tls_domain: ""

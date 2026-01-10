@@ -1,0 +1,81 @@
+---
+# Redis role - Docker Compose를 사용한 Redis 설치
+
+- name: Create Redis directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ redis_base_dir }}"
+    - "{{ redis_data_dir }}"
+    - "{{ redis_config_dir }}"
+  tags: [redis, directories]
+
+- name: Deploy Redis configuration file
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ redis_config_dir }}/redis.conf"
+    mode: "0644"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart Redis
+  tags: [redis, config]
+
+- name: Deploy Redis docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ redis_compose_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart Redis
+  tags: [redis, compose]
+
+- name: Create Docker networks for Redis
+  community.docker.docker_network:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ redis_networks }}"
+  when: redis_networks | default([]) | length > 0
+  tags: [redis, networks]
+
+- name: Start Redis container
+  community.docker.docker_compose_v2:
+    project_src: "{{ redis_compose_dir }}"
+    state: present
+  register: redis_output
+  when: not ansible_check_mode
+  tags: [redis, start]
+
+- name: Wait for Redis to be ready
+  ansible.builtin.wait_for:
+    host: localhost
+    port: "{{ redis_host_port }}"
+    delay: 3
+    timeout: 30
+    state: started
+  when: redis_expose_port | default(false)
+  tags: [redis, healthcheck]
+
+- name: Check Redis health via Docker
+  ansible.builtin.command:
+    cmd: docker exec redis redis-cli -a {{ redis_password }} ping
+  register: redis_health
+  retries: 6
+  delay: 5
+  until: redis_health.stdout == "PONG"
+  changed_when: false
+  no_log: true
+  when: not ansible_check_mode
+  tags: [redis, healthcheck]
+
+- name: Display Redis connection info
+  ansible.builtin.debug:
+    msg:
+      - "Redis is running!"
+      - "Internal: localhost:{{ redis_host_port }} (if exposed)"
+      - "Password: {{ 'Set' if redis_password else 'Not set' }}"
+  tags: [redis, info]

@@ -1,0 +1,59 @@
+---
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:{{ mariadb_version }}
+    container_name: mariadb
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - {{ mariadb_data_dir }}:/var/lib/mysql
+{% if mariadb_init_scripts_dir is defined %}
+      - {{ mariadb_init_scripts_dir }}:/docker-entrypoint-initdb.d
+{% endif %}
+{% if mariadb_tls_enabled | default(false) %}
+      - {{ mariadb_tls_cert_dir }}:/etc/mysql/certs:ro
+{% endif %}
+{% if mariadb_expose_port | default(false) %}
+    ports:
+      - "{{ mariadb_host_port }}:3306"
+{% endif %}
+{% if mariadb_networks | default([]) | length > 0 %}
+    networks:
+{% for network in mariadb_networks %}
+      - {{ network }}
+{% endfor %}
+{% endif %}
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p${MARIADB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+{% if mariadb_tls_enabled | default(false) %}
+    command:
+      - --ssl-cert=/etc/mysql/certs/cert.pem
+      - --ssl-key=/etc/mysql/certs/key.pem
+      - --ssl-ca=/etc/mysql/certs/ca.pem
+      - --require-secure-transport=ON
+{% endif %}
+    labels:
+      - "traefik.enable=true"
+
+      # TCP 라우터 설정 (TLS passthrough - MariaDB가 직접 TLS 처리)
+      - "traefik.tcp.routers.mariadb.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.mariadb.entrypoints=mariadb"
+      - "traefik.tcp.routers.mariadb.tls=false"
+      - "traefik.tcp.routers.mariadb.service=mariadb-svc"
+
+      # TCP 서비스 설정
+      - "traefik.tcp.services.mariadb-svc.loadbalancer.server.port=3306"
+
+{% if mariadb_networks | default([]) | length > 0 %}
+networks:
+{% for network in mariadb_networks %}
+  {{ network }}:
+    external: true
+{% endfor %}
+{% endif %}

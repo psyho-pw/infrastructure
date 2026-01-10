@@ -1,0 +1,27 @@
+# Redis Configuration
+
+# 네트워크
+bind 0.0.0.0
+port 6379
+protected-mode yes
+
+# 인증
+{% if redis_password %}
+requirepass {{ redis_password }}
+{% endif %}
+
+# 메모리 관리
+maxmemory {{ redis_maxmemory }}
+maxmemory-policy {{ redis_maxmemory_policy }}
+
+# 영속성
+appendonly {{ redis_appendonly }}
+appendfsync everysec
+dir /data
+
+# 로그
+loglevel notice
+
+# 기타
+tcp-keepalive 300
+databases 16
