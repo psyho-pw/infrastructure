@@ -1,0 +1,25 @@
+---
+# Redis role defaults
+
+redis_version: "7"
+redis_password: ""
+
+# 디렉토리 설정
+redis_base_dir: "{{ data_dir | default('/opt/docker') }}/redis"
+redis_data_dir: "{{ redis_base_dir }}/data"
+redis_config_dir: "{{ redis_base_dir }}/config"
+
+# 포트 설정
+redis_host_port: 6379
+redis_expose_port: false
+
+# 네트워크 설정 (선택사항)
+redis_networks: []
+# Docker Compose 설정
+redis_compose_dir: "{{ redis_base_dir }}"
+redis_service_name: "redis"
+
+# Redis 설정
+redis_maxmemory: "256mb"
+redis_maxmemory_policy: "allkeys-lru"
+redis_appendonly: "yes"

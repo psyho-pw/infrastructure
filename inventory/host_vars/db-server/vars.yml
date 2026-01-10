@@ -12,25 +12,46 @@ firewall_allowed_tcp_ports:
   - 80 # HTTP
   - 443 # HTTPS
   - 5432 # PostgreSQL
+  - 3306 # MariaDB
+  - 6379 # Redis
 
 # Traefik 설정
 traefik_dashboard_domain: "{{ vault_traefik_domain }}"
 traefik_acme_email: "{{ vault_traefik_acme_email }}"
 traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth }}"
 
-# Traefik 커스텀 진입점 (PostgreSQL TCP)
+# Traefik 커스텀 진입점 (PostgreSQL, MariaDB TCP)
 traefik_custom_entrypoints:
   postgres:
     address: ":5432"
     transport:
       respondingTimeouts:
-        readTimeout: "0"
-        writeTimeout: "0"
+        readTimeout: "0s"
+        writeTimeout: "0s"
         idleTimeout: "180s"
+  mariadb:
+    address: ":3306"
+    transport:
+      respondingTimeouts:
+        readTimeout: "0s"
+        writeTimeout: "0s"
+        idleTimeout: "180s"
+  redis:
+    address: ":6379"
+    transport:
+      respondingTimeouts:
+        readTimeout: "0s"
+        writeTimeout: "0s"
+        idleTimeout: "180s"
+
+# Traefik 디버깅
+traefik_log_level: "DEBUG"
 
 # Traefik 커스텀 포트
 traefik_custom_ports:
   - "5432:5432" # PostgreSQL TLS 포트
+  - "3306:3306" # MariaDB TLS 포트
+  - "6379:6379" # Redis 포트
 
 # PostgreSQL 설정
 postgresql_version: "{{ vault_postgresql_version }}"
@@ -55,3 +76,47 @@ postgresql_tls_domain: "{{ domain }}"
 
 # 데이터 디렉토리
 db_data_dir: "{{ base_dir }}/data"
+
+# MariaDB 설정
+mariadb_version: "{{ vault_mariadb_version }}"
+mariadb_root_password: "{{ vault_mariadb_root_password }}"
+mariadb_user: "{{ vault_mariadb_user }}"
+mariadb_password: "{{ vault_mariadb_password }}"
+mariadb_default_db: "{{ vault_mariadb_default_db }}"
+
+# MariaDB 포트 설정
+mariadb_host_port: 3306
+mariadb_expose_port: false # Traefik 사용시 false 권장
+
+# MariaDB 디렉토리 설정
+mariadb_base_dir: "{{ db_data_dir }}/mariadb"
+
+# MariaDB 네트워크 설정 (Traefik 연결)
+mariadb_networks:
+  - proxy
+
+# MariaDB Traefik 도메인 (TLS 접속용)
+mariadb_tls_domain: "{{ domain }}"
+
+# MariaDB TLS 설정 (자체 TLS - Traefik passthrough)
+mariadb_tls_enabled: true
+mariadb_tls_cert_dir: "{{ mariadb_base_dir }}/certs"
+
+# Redis 설정
+redis_version: "{{ vault_redis_version }}"
+redis_password: "{{ vault_redis_password }}"
+
+# Redis 포트 설정
+redis_host_port: 6379
+redis_expose_port: false
+
+# Redis 디렉토리 설정
+redis_base_dir: "{{ db_data_dir }}/redis"
+
+# Redis 네트워크 설정
+redis_networks:
+  - proxy
+
+# Redis 메모리 설정
+redis_maxmemory: "256mb"
+redis_maxmemory_policy: "allkeys-lru"

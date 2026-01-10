@@ -1,0 +1,23 @@
+---
+# Safe restart logic for MariaDB
+
+- name: Stop MariaDB gracefully
+  ansible.builtin.command:
+    cmd: docker exec mariadb mariadb-admin shutdown -u root -p{{ mariadb_root_password }}
+  failed_when: false
+  register: mariadb_shutdown_result
+  changed_when: mariadb_shutdown_result.rc == 0
+
+- name: Wait for MariaDB to stop
+  ansible.builtin.pause:
+    seconds: 5
+
+- name: Remove tc.log if exists (fix crash recovery)
+  ansible.builtin.file:
+    path: "{{ mariadb_data_dir }}/tc.log"
+    state: absent
+
+- name: Start MariaDB
+  community.docker.docker_compose_v2:
+    project_src: "{{ mariadb_compose_dir }}"
+    state: present

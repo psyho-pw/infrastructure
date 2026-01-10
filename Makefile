@@ -50,12 +50,18 @@ deploy: ## deploy infrastructure (TARGET=all|pi|db|jenkins|docker|traefik, DRY_R
 		ansible-playbook -i $(INVENTORY) $$PLAYBOOK; \
 	fi
 
-vault-decrypt: ## decrypt Vault file (example: make vault-decrypt HOST=pi-server)
+vault-decrypt: ## decrypt Vault file (example: make vault-decrypt HOST=pi-server or HOST=production)
 	@if [ -z "$(HOST)" ]; then \
-		echo "Error: HOST 변수를 지정해주세요. 예: make vault-decrypt HOST=pi-server"; \
+		echo "Error: HOST 변수를 지정해주세요."; \
+		echo "  - 호스트: make vault-decrypt HOST=pi-server"; \
+		echo "  - Production inventory: make vault-decrypt HOST=production"; \
 		exit 1; \
 	fi
-	@FILE_PATH="inventory/host_vars/$(HOST)/vault.yml"; \
+	@if [ "$(HOST)" = "production" ]; then \
+		FILE_PATH="inventory/production"; \
+	else \
+		FILE_PATH="inventory/host_vars/$(HOST)/vault.yml"; \
+	fi; \
 	if [ ! -f "$$FILE_PATH" ]; then \
 		echo "Error: 파일을 찾을 수 없습니다: $$FILE_PATH"; \
 		exit 1; \
@@ -63,12 +69,18 @@ vault-decrypt: ## decrypt Vault file (example: make vault-decrypt HOST=pi-server
 	echo "Decrypting: $$FILE_PATH"; \
 	ansible-vault decrypt $$FILE_PATH --vault-password-file $(VAULT_PASS)
 
-vault-encrypt: ## encrypt Vault file (example: make vault-encrypt HOST=pi-server)
+vault-encrypt: ## encrypt Vault file (example: make vault-encrypt HOST=pi-server or HOST=production)
 	@if [ -z "$(HOST)" ]; then \
-		echo "Error: HOST 변수를 지정해주세요. 예: make vault-encrypt HOST=pi-server"; \
+		echo "Error: HOST 변수를 지정해주세요."; \
+		echo "  - 호스트: make vault-encrypt HOST=pi-server"; \
+		echo "  - Production inventory: make vault-encrypt HOST=production"; \
 		exit 1; \
 	fi
-	@FILE_PATH="inventory/host_vars/$(HOST)/vault.yml"; \
+	@if [ "$(HOST)" = "production" ]; then \
+		FILE_PATH="inventory/production"; \
+	else \
+		FILE_PATH="inventory/host_vars/$(HOST)/vault.yml"; \
+	fi; \
 	if [ ! -f "$$FILE_PATH" ]; then \
 		echo "Error: 파일을 찾을 수 없습니다: $$FILE_PATH"; \
 		exit 1; \

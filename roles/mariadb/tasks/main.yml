@@ -1,0 +1,170 @@
+---
+# MariaDB role - Docker Compose를 사용한 MariaDB 설치
+
+- name: Create MariaDB directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ mariadb_base_dir }}"
+    - "{{ mariadb_data_dir }}"
+    - "{{ mariadb_init_scripts_dir }}"
+    - "{{ mariadb_tls_cert_dir }}"
+  when: mariadb_tls_enabled | default(false)
+  tags: [mariadb, directories]
+
+- name: Create MariaDB directories (without TLS)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ mariadb_base_dir }}"
+    - "{{ mariadb_data_dir }}"
+    - "{{ mariadb_init_scripts_dir }}"
+  when: not (mariadb_tls_enabled | default(false))
+  tags: [mariadb, directories]
+
+# TLS 인증서 설정 (Traefik Let's Encrypt 인증서 추출)
+- name: Install jq for certificate extraction
+  ansible.builtin.apt:
+    name: jq
+    state: present
+  when: mariadb_tls_enabled | default(false)
+  tags: [mariadb, tls]
+
+- name: Deploy certificate extraction script
+  ansible.builtin.template:
+    src: extract-certs.sh.j2
+    dest: "{{ mariadb_base_dir }}/extract-certs.sh"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  when: mariadb_tls_enabled | default(false)
+  tags: [mariadb, tls]
+
+- name: Extract TLS certificates from Traefik acme.json
+  ansible.builtin.command:
+    cmd: "{{ mariadb_base_dir }}/extract-certs.sh"
+  register: mariadb_cert_extract_result
+  changed_when: mariadb_cert_extract_result.rc == 0
+  when:
+    - mariadb_tls_enabled | default(false)
+    - not ansible_check_mode
+  tags: [mariadb, tls]
+
+- name: Set certificate file permissions for MariaDB
+  ansible.builtin.file:
+    path: "{{ mariadb_tls_cert_dir }}/{{ item.name }}"
+    mode: "{{ item.mode }}"
+    owner: "999"
+    group: "999"
+  loop:
+    - { name: "cert.pem", mode: "0644" }
+    - { name: "key.pem", mode: "0600" }
+    - { name: "ca.pem", mode: "0644" }
+  when:
+    - mariadb_tls_enabled | default(false)
+    - not ansible_check_mode
+  tags: [mariadb, tls]
+
+- name: Deploy MariaDB environment file
+  ansible.builtin.template:
+    src: mariadb.env.j2
+    dest: "{{ mariadb_compose_dir }}/.env"
+    mode: "0600"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart MariaDB
+  tags: [mariadb, env]
+
+- name: Deploy MariaDB docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ mariadb_compose_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart MariaDB
+  tags: [mariadb, compose]
+
+- name: Create Docker networks for MariaDB
+  community.docker.docker_network:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ mariadb_networks }}"
+  when: mariadb_networks | default([]) | length > 0
+  tags: [mariadb, networks]
+
+- name: Start MariaDB container
+  community.docker.docker_compose_v2:
+    project_src: "{{ mariadb_compose_dir }}"
+    state: present
+  register: mariadb_output
+  when: not ansible_check_mode
+  tags: [mariadb, start]
+
+- name: Wait for MariaDB to be ready
+  ansible.builtin.wait_for:
+    host: localhost
+    port: "{{ mariadb_host_port }}"
+    delay: 5
+    timeout: 60
+    state: started
+  when: mariadb_expose_port | default(false)
+  tags: [mariadb, healthcheck]
+
+- name: Check MariaDB health via Docker
+  ansible.builtin.command:
+    cmd: docker exec mariadb mariadb-admin ping -u root -p{{ mariadb_root_password }}
+  register: mariadb_health
+  retries: 12
+  delay: 5
+  until: mariadb_health.rc == 0
+  changed_when: false
+  no_log: true
+  when:
+    - not (mariadb_expose_port | default(false))
+    - not ansible_check_mode
+  tags: [mariadb, healthcheck]
+
+- name: Display MariaDB connection info
+  ansible.builtin.debug:
+    msg:
+      - "MariaDB is running!"
+      - "Internal: localhost:{{ mariadb_host_port }} (if exposed)"
+      - "Root user: root"
+      - "Database: {{ mariadb_default_db | default('none') }}"
+      - "Note: Password is stored in .env file"
+  tags: [mariadb, info]
+
+- name: Check for tc.log corruption
+  ansible.builtin.stat:
+    path: "{{ mariadb_data_dir }}/tc.log"
+  register: mariadb_tc_log_file
+  tags: [mariadb, fix]
+
+- name: Force remove tc.log and restart (Fix crash recovery)
+  when: mariadb_tc_log_file.stat.exists
+  tags: [mariadb, fix]
+  block:
+    - name: Stop MariaDB for recovery
+      community.docker.docker_compose_v2:
+        project_src: "{{ mariadb_compose_dir }}"
+        state: absent
+      failed_when: false
+
+    - name: Remove corrupted tc.log
+      ansible.builtin.file:
+        path: "{{ mariadb_data_dir }}/tc.log"
+        state: absent
+
+    - name: Start MariaDB after recovery
+      community.docker.docker_compose_v2:
+        project_src: "{{ mariadb_compose_dir }}"
+        state: present
