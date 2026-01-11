@@ -35,15 +35,128 @@ infrastructure/
 │   ├── docker/                # Docker 설치 및 설정
 │   ├── traefik/               # Traefik 리버스 프록시
 │   ├── kafka/                 # Kafka 클러스터
-│   └── squid_proxy/           # Squid 프록시 서버
+│   ├── squid_proxy/           # Squid 프록시 서버
+│   └ ...
 └── playbooks/                 # Ansible 플레이북
     ├── site.yml               # 마스터 플레이북
     ├── docker.yml             # Docker 설치
     ├── traefik.yml            # Traefik 배포
     ├── pi.yml                 # Pi 서버 전용
     ├── db.yml                 # DB 서버 전용
-    └── jenkins.yml            # Jenkins 서버 전용
+    ├── jenkins.yml            # Jenkins 서버 전용
+    └ ...
 
+```
+
+### 인프라 아키텍처 다이어그램
+
+```mermaid
+graph TB
+    subgraph Internet["🌐 인터넷"]
+        Client[클라이언트]
+        DevClient[개발자]
+    end
+
+    subgraph DBServer["🗄️ DB Server"]
+        DBTraefik[Traefik<br/>:80/:443]
+        PostgreSQL[(PostgreSQL<br/>:5432<br/>TCP Routing)]
+        MariaDB[(MariaDB<br/>:3306<br/>⚡ TLS Passthrough<br/>자체 인증서)]
+        Redis[(Redis<br/>:6379<br/>TCP Routing)]
+        
+        DBTraefik -->|TLS Termination| PostgreSQL
+        DBTraefik -->|TLS Passthrough| MariaDB
+        DBTraefik -->|TLS Termination| Redis
+    end
+
+    subgraph JenkinsServer["🔧 Jenkins Server"]
+        JenkinsTraefik[Traefik<br/>:80/:443]
+        Jenkins[Jenkins<br/>:8080/:50000]
+        
+        JenkinsTraefik -->|TLS Termination| Jenkins
+    end
+
+    subgraph PiServer["📡 Pi Server"]
+        PiTraefik[Traefik<br/>:80/:443]
+        Kafka[Kafka<br/>:9092<br/>TCP Routing]
+        KafkaUI[Kafka UI<br/>Web Interface]
+        Squid[Squid Proxy<br/>:8080<br/>TCP Routing]
+        
+        PiTraefik -->|TCP Routing| Kafka
+        PiTraefik -->|TLS Termination| KafkaUI
+        PiTraefik -->|TCP Routing| Squid
+        KafkaUI -->|Monitor| Kafka
+    end
+
+    subgraph ProdServer["🚀 Production Server"]
+        ProdTraefik[Traefik<br/>:80/:443]
+        ProdApps[Production Apps]
+        
+        ProdTraefik -->|TLS Termination| ProdApps
+    end
+
+    subgraph TestServer["🧪 Test Server<br/>📊 Monitoring & Observability Stack"]
+        TestTraefik[Traefik<br/>:80/:443]
+        Prometheus[Prometheus<br/>:9090<br/>메트릭 수집]
+        Loki[Loki<br/>:3100<br/>로그 집계]
+        Grafana[Grafana<br/>:3000<br/>시각화 대시보드]
+        
+        TestTraefik -->|TLS Termination| Prometheus
+        TestTraefik -->|TLS Termination| Loki
+        TestTraefik -->|TLS Termination| Grafana
+        Grafana -->|Query Metrics| Prometheus
+        Grafana -->|Query Logs| Loki
+    end
+
+    Client -->|HTTPS| DBTraefik
+    Client -->|HTTPS| JenkinsTraefik
+    Client -->|HTTPS| ProdTraefik
+    Client -->|HTTPS| TestTraefik
+    
+    DevClient -->|HTTPS| PiTraefik
+    DevClient -->|HTTP Proxy| Squid
+    DevClient -->|Monitor Dashboard| Grafana
+    
+    Jenkins -.->|CI/CD Deploy| ProdApps
+    
+    ProdApps -.->|DB Connection| PostgreSQL
+    ProdApps -.->|DB Connection| MariaDB
+    ProdApps -.->|Cache| Redis
+    ProdApps -.->|Message Queue| Kafka
+    
+    Prometheus -.->|Scrape Metrics| DBTraefik
+    Prometheus -.->|Scrape Metrics| JenkinsTraefik
+    Prometheus -.->|Scrape Metrics| PiTraefik
+    Prometheus -.->|Scrape Metrics| ProdTraefik
+    Prometheus -.->|Scrape Metrics| PostgreSQL
+    Prometheus -.->|Scrape Metrics| MariaDB
+    Prometheus -.->|Scrape Metrics| Redis
+    Prometheus -.->|Scrape Metrics| Kafka
+    Prometheus -.->|Scrape Metrics| Jenkins
+    
+    Loki -.->|Collect Logs| DBTraefik
+    Loki -.->|Collect Logs| JenkinsTraefik
+    Loki -.->|Collect Logs| PiTraefik
+    Loki -.->|Collect Logs| ProdTraefik
+    Loki -.->|Collect Logs| PostgreSQL
+    Loki -.->|Collect Logs| MariaDB
+    Loki -.->|Collect Logs| Redis
+    Loki -.->|Collect Logs| Kafka
+    Loki -.->|Collect Logs| Jenkins
+    Loki -.->|Collect Logs| ProdApps
+
+    classDef serverStyle fill:#e1f5ff,stroke:#0066cc,stroke-width:2px
+    classDef proxyStyle fill:#fff4e6,stroke:#ff9800,stroke-width:2px
+    classDef dbStyle fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    classDef appStyle fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    classDef passthroughStyle fill:#ffebee,stroke:#f44336,stroke-width:3px
+    classDef monitoringStyle fill:#fff3e0,stroke:#ff6f00,stroke-width:2px
+    
+    class DBServer,JenkinsServer,PiServer,ProdServer,TestServer serverStyle
+    class DBTraefik,JenkinsTraefik,PiTraefik,ProdTraefik,TestTraefik proxyStyle
+    class PostgreSQL,Redis,Kafka dbStyle
+    class MariaDB passthroughStyle
+    class Jenkins,ProdApps,KafkaUI appStyle
+    class Prometheus,Loki,Grafana monitoringStyle
 ```
 
 ## Settings
