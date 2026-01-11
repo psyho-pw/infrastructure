@@ -1,14 +1,49 @@
 ---
 # Test 서버 전용 변수
 
+# 서버 기본 정보
 server_name: "test-server"
-domain: "test.example.com" # CHANGE THIS
+domain: "{{ vault_domain }}"
 
-# Traefik 설정 (민감 정보는 vault.yml에서 참조)
+# 방화벽 설정
+firewall_enabled: true
+firewall_allowed_tcp_ports:
+  - 22 # SSH
+  - 80 # HTTP
+  - 443 # HTTPS
+
+# Traefik 설정
 traefik_acme_email: "{{ vault_traefik_acme_email }}"
-traefik_dashboard_domain: "{{ domain }}"
-
-# 테스트 환경 특화 설정
+traefik_dashboard_domain: "{{ vault_traefik_domain }}"
+traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth }}"
 traefik_log_level: "DEBUG"
 
-# 서비스별 설정 추가 필요
+# Observability 설정
+observability_enabled: true
+observability_dir: "{{ base_dir }}/observability"
+
+# Prometheus 설정
+prometheus_version: "v3.1.0"
+prometheus_retention_time: "15d"
+prometheus_scrape_interval: "15s"
+prometheus_basic_auth: "{{ vault_prometheus_basic_auth }}"
+
+# Prometheus scrape targets (필요시 추가)
+# prometheus_scrape_configs:
+#   - job_name: 'traefik'
+#     scheme: 'https'
+#     tls_config:
+#       insecure_skip_verify: true
+#     targets:
+#       - 'traefik:8080'
+
+# Loki 설정
+loki_version: "3.3.2"
+loki_retention_period: "168h"
+loki_cache_max_size_mb: 100
+loki_basic_auth: "{{ vault_loki_basic_auth }}"
+
+# Grafana 설정
+grafana_version: "11.4.0"
+grafana_admin_user: "{{ vault_grafana_admin_user }}"
+grafana_admin_password: "{{ vault_grafana_admin_password }}"

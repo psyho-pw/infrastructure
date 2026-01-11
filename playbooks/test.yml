@@ -1,0 +1,27 @@
+---
+# Test server specific playbook
+
+- name: Configure Test server base
+  hosts: test
+  gather_facts: true
+  become: true
+  roles:
+    - common
+    - docker
+  tags: [common, docker]
+
+- name: Deploy Traefik on Test
+  hosts: test
+  gather_facts: true
+  become: true
+  roles:
+    - traefik
+  tags: [traefik]
+
+- name: Deploy Observability stack on Test
+  hosts: test
+  gather_facts: true
+  become: true
+  roles:
+    - observability
+  tags: [observability]

@@ -6,7 +6,7 @@
     name: "{{ timezone }}"
   tags: [common, timezone]
 
-
+# Debian/Ubuntu 패키지 관리
 - name: Update apt cache
   ansible.builtin.apt:
     update_cache: true
@@ -14,17 +14,33 @@
   when: ansible_facts['os_family'] == "Debian"
   tags: [common, packages]
 
-- name: Install common packages
+- name: Install common packages (Debian)
   ansible.builtin.apt:
     name: "{{ common_packages }}"
     state: present
   when: ansible_facts['os_family'] == "Debian"
   tags: [common, packages]
 
+# RHEL/Rocky Linux 패키지 관리
+- name: Install common packages (RHEL)
+  ansible.builtin.dnf:
+    name: "{{ common_packages_rhel }}"
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+  tags: [common, packages]
+
+- name: Install EPEL repository (RHEL)
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+  tags: [common, packages]
+
 - name: Install Python packages
   ansible.builtin.pip:
     name: "{{ python_packages }}"
     state: present
+  when: python_packages | length > 0
   tags: [common, python]
 
 - name: Create base directories
@@ -38,17 +54,54 @@
     - "{{ base_dir }}"
   tags: [common, directories]
 
+# Debian/Ubuntu 방화벽 (UFW)
 - name: Configure UFW firewall
   community.general.ufw:
     rule: allow
     port: "{{ item }}"
     proto: tcp
   loop: "{{ firewall_allowed_tcp_ports }}"
-  when: firewall_enabled | default(false)
+  when:
+    - firewall_enabled | default(false)
+    - ansible_facts['os_family'] == "Debian"
   tags: [common, firewall]
 
 - name: Enable UFW
   community.general.ufw:
     state: enabled
-  when: firewall_enabled | default(false)
+  when:
+    - firewall_enabled | default(false)
+    - ansible_facts['os_family'] == "Debian"
+  tags: [common, firewall]
+
+# RHEL/Rocky Linux 방화벽 (firewalld)
+- name: Ensure firewalld is installed (RHEL)
+  ansible.builtin.dnf:
+    name: firewalld
+    state: present
+  when:
+    - firewall_enabled | default(false)
+    - ansible_facts['os_family'] == "RedHat"
+  tags: [common, firewall]
+
+- name: Ensure firewalld is started and enabled (RHEL)
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+  when:
+    - firewall_enabled | default(false)
+    - ansible_facts['os_family'] == "RedHat"
+  tags: [common, firewall]
+
+- name: Configure firewalld (RHEL)
+  ansible.posix.firewalld:
+    port: "{{ item }}/tcp"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: "{{ firewall_allowed_tcp_ports }}"
+  when:
+    - firewall_enabled | default(false)
+    - ansible_facts['os_family'] == "RedHat"
   tags: [common, firewall]

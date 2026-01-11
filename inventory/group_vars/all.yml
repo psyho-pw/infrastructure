@@ -21,8 +21,21 @@ firewall_allowed_tcp_ports:
   - 80 # HTTP
   - 443 # HTTPS
 
-# 공통 패키지
+# 공통 패키지 (Debian/Ubuntu)
 common_packages:
+  - curl
+  - wget
+  - git
+  - vim
+  - htop
+  - net-tools
+  - python3
+  - python3-pip
+  - python3-docker
+  - python3-passlib
+
+# 공통 패키지 (RHEL/Rocky Linux)
+common_packages_rhel:
   - curl
   - wget
   - git

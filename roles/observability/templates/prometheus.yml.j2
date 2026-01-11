@@ -1,0 +1,42 @@
+global:
+  scrape_interval: {{ prometheus_scrape_interval | default('15s') }}
+  evaluation_interval: {{ prometheus_evaluation_interval | default('15s') }}
+
+scrape_configs:
+  - job_name: 'prometheus'
+    metrics_path: '/prometheus/metrics'
+    static_configs:
+      - targets: ['localhost:9090']
+
+{% if prometheus_scrape_configs is defined %}
+{% for config in prometheus_scrape_configs %}
+  - job_name: '{{ config.job_name }}'
+{% if config.metrics_path is defined %}
+    metrics_path: '{{ config.metrics_path }}'
+{% endif %}
+{% if config.scheme is defined %}
+    scheme: '{{ config.scheme }}'
+{% endif %}
+{% if config.basic_auth is defined %}
+    basic_auth:
+      username: '{{ config.basic_auth.username }}'
+      password: '{{ config.basic_auth.password }}'
+{% endif %}
+{% if config.tls_config is defined %}
+    tls_config:
+      insecure_skip_verify: {{ config.tls_config.insecure_skip_verify | default(false) | lower }}
+{% endif %}
+    static_configs:
+      - targets:
+{% for target in config.targets %}
+          - '{{ target }}'
+{% endfor %}
+{% if config.labels is defined %}
+        labels:
+{% for key, value in config.labels.items() %}
+          {{ key }}: '{{ value }}'
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}

@@ -34,6 +34,7 @@ vault_pass.txt
 *.retry
 ansible.log
 /tmp/ansible_facts
+.ansible/
 
 # Data directories
 **/data/

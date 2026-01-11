@@ -1,5 +1,5 @@
-.PHONY: help install check deploy deploy-all deploy-pi deploy-db deploy-jenkins \
-        deploy-docker deploy-traefik dry-run dry-run-pi dry-run-db dry-run-jenkins \
+.PHONY: help install check deploy deploy-all deploy-pi deploy-db deploy-jenkins deploy-test \
+        deploy-docker deploy-traefik dry-run dry-run-pi dry-run-db dry-run-jenkins dry-run-test \
         vault-decrypt vault-encrypt ping docker-logs docker-ps clean lint install-hooks
 
 INVENTORY := inventory/production
@@ -31,6 +31,9 @@ deploy: ## deploy infrastructure (TARGET=all|pi|db|jenkins|docker|traefik, DRY_R
 		jenkins) \
 			PLAYBOOK="playbooks/jenkins.yml"; \
 			;; \
+		test) \
+			PLAYBOOK="playbooks/test.yml"; \
+			;; \
 		docker) \
 			PLAYBOOK="playbooks/docker.yml"; \
 			;; \
@@ -38,7 +41,7 @@ deploy: ## deploy infrastructure (TARGET=all|pi|db|jenkins|docker|traefik, DRY_R
 			PLAYBOOK="playbooks/traefik.yml"; \
 			;; \
 		*) \
-			echo "Error: Invalid TARGET. Available: all, pi, db, jenkins, docker, traefik"; \
+			echo "Error: Invalid TARGET. Available: all, pi, db, jenkins, test, docker, traefik"; \
 			echo "Usage: make deploy TARGET=pi"; \
 			echo "       make deploy TARGET=all DRY_RUN=true"; \
 			exit 1; \
@@ -118,6 +121,9 @@ deploy-db: ## deploy DB server
 deploy-jenkins: ## deploy Jenkins server
 	@$(MAKE) deploy TARGET=jenkins
 
+deploy-test: ## deploy Test server
+	@$(MAKE) deploy TARGET=test
+
 deploy-docker: ## deploy Docker only
 	@$(MAKE) deploy TARGET=docker
 
@@ -136,6 +142,9 @@ dry-run-db: ## dry-run DB server
 
 dry-run-jenkins: ## dry-run Jenkins server
 	@$(MAKE) deploy TARGET=jenkins DRY_RUN=true
+
+dry-run-test: ## dry-run Test server
+	@$(MAKE) deploy TARGET=test DRY_RUN=true
 
 clean: ## clean Ansible logs
 	rm -f ansible.log
