@@ -92,3 +92,8 @@ docker_custom_networks:
   - name: kafka-network
     driver: bridge
     state: present
+
+# Loki 설정
+loki_endpoint: "test.psyho.kr"
+loki_username: "{{ vault_loki_username }}"
+loki_password: "{{ vault_loki_password }}"
