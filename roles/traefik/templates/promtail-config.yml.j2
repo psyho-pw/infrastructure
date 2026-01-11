@@ -25,10 +25,7 @@ scrape_configs:
         regex: '/(.*)'
         target_label: 'container'
 
-    pipeline_stages:$'
-      - replacement: 'unknown-app' 
-        target_label: 'app'
-
+    pipeline_stages:
       # Docker JSON Log Driver의 껍데기 파싱 (log, stream, time 분리)
       - json:
           expressions:
