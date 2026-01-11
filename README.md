@@ -52,7 +52,7 @@ infrastructure/
 
 ```mermaid
 graph TB
-    subgraph Internet["🌐 인터넷"]
+    subgraph Internet["🌐 Internet"]
         Client[클라이언트]
         DevClient[개발자]
     end
@@ -60,7 +60,7 @@ graph TB
     subgraph DBServer["🗄️ DB Server"]
         DBTraefik[Traefik<br/>:80/:443]
         PostgreSQL[(PostgreSQL<br/>:5432<br/>TCP Routing)]
-        MariaDB[(MariaDB<br/>:3306<br/>⚡ TLS Passthrough<br/>자체 인증서)]
+        MariaDB[(MariaDB<br/>:3306<br/>TLS Passthrough<br/>)]
         Redis[(Redis<br/>:6379<br/>TCP Routing)]
         
         DBTraefik -->|TLS Termination| PostgreSQL
@@ -94,7 +94,7 @@ graph TB
         ProdTraefik -->|TLS Termination| ProdApps
     end
 
-    subgraph TestServer["🧪 Test Server<br/>📊 Monitoring & Observability Stack"]
+    subgraph TestServer["🧪 Test Server<br/> Monitoring & Observability Stack"]
         TestTraefik[Traefik<br/>:80/:443]
         Prometheus[Prometheus<br/>:9090<br/>메트릭 수집]
         Loki[Loki<br/>:3100<br/>로그 집계]
@@ -168,13 +168,6 @@ graph TB
    ```bash
    # macOS
    brew install ansible
-
-   # Ubuntu/Debian
-   sudo apt update
-   sudo apt install ansible
-
-   # Python pip
-   pip install ansible
    ```
 
 2. **Ansible Collections 설치**
