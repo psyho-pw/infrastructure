@@ -1,0 +1,130 @@
+---
+# Observability role - Grafana, Loki, Prometheus 설정
+
+- name: Skip observability deployment if not enabled
+  ansible.builtin.meta: end_play
+  when: not (observability_enabled | default(false))
+  tags: [observability]
+
+- name: Create observability base directory
+  ansible.builtin.file:
+    path: "{{ observability_dir }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  tags: [observability, directories]
+
+- name: Create Prometheus directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ observability_dir }}/prometheus"
+    - "{{ observability_dir }}/prometheus/config"
+    - "{{ observability_dir }}/prometheus/data"
+  tags: [observability, prometheus, directories]
+
+- name: Set Prometheus data directory ownership (for container)
+  ansible.builtin.file:
+    path: "{{ observability_dir }}/prometheus/data"
+    state: directory
+    mode: "0700"
+    owner: "65534"
+    group: "65534"
+  tags: [observability, prometheus, directories]
+
+- name: Create Loki directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ observability_dir }}/loki"
+    - "{{ observability_dir }}/loki/config"
+    - "{{ observability_dir }}/loki/data"
+  tags: [observability, loki, directories]
+
+- name: Set Loki data directory ownership (for container)
+  ansible.builtin.file:
+    path: "{{ observability_dir }}/loki/data"
+    state: directory
+    mode: "0700"
+    owner: "10001"
+    group: "10001"
+  tags: [observability, loki, directories]
+
+- name: Create Grafana directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0700"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ observability_dir }}/grafana"
+    - "{{ observability_dir }}/grafana/data"
+    - "{{ observability_dir }}/grafana/provisioning"
+    - "{{ observability_dir }}/grafana/provisioning/datasources"
+    - "{{ observability_dir }}/grafana/provisioning/dashboards"
+  tags: [observability, grafana, directories]
+
+- name: Set Grafana data directory ownership (for container)
+  ansible.builtin.file:
+    path: "{{ observability_dir }}/grafana/data"
+    state: directory
+    mode: "0755"
+    owner: "472"
+    group: "472"
+  tags: [observability, grafana, directories]
+
+- name: Create Prometheus config file
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ observability_dir }}/prometheus/config/prometheus.yml"
+    mode: "0644"
+  notify: Restart observability
+  tags: [observability, prometheus, config]
+
+- name: Create Loki config file
+  ansible.builtin.template:
+    src: loki-config.yml.j2
+    dest: "{{ observability_dir }}/loki/config/loki-config.yml"
+    mode: "0644"
+  notify: Restart observability
+  tags: [observability, loki, config]
+
+- name: Create Grafana datasources provisioning
+  ansible.builtin.template:
+    src: grafana-datasources.yml.j2
+    dest: "{{ observability_dir }}/grafana/provisioning/datasources/datasources.yml"
+    mode: "0644"
+  notify: Restart observability
+  tags: [observability, grafana, config]
+
+- name: Create observability docker compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ observability_dir }}/compose.yml"
+    mode: "0644"
+  notify: Restart observability
+  tags: [observability, compose]
+
+- name: Create observability environment file
+  ansible.builtin.template:
+    src: observability.env.j2
+    dest: "{{ observability_dir }}/.env"
+    mode: "0600"
+  notify: Restart observability
+  tags: [observability, env]
+
+- name: Deploy observability stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ observability_dir }}"
+    state: present
+  tags: [observability, deploy]

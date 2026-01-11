@@ -1,0 +1,9 @@
+---
+# Observability handlers
+
+- name: Restart observability
+  community.docker.docker_compose_v2:
+    project_src: "{{ observability_dir }}"
+    state: present
+    recreate: always
+  tags: [observability]
