@@ -20,29 +20,22 @@ scrape_configs:
         refresh_interval: 5s
 
     relabel_configs:
-      # 1. Docker 컨테이너 이름을 'container' 레이블로 변환
+      # Docker 컨테이너 이름을 'container' 레이블로 변환
       - source_labels: ['__meta_docker_container_name']
         regex: '/(.*)'
         target_label: 'container'
-      
-      # 2. Docker Label을 이용해 'app' 레이블 생성 (AWS의 labels="app=..." 흉내)
-      - source_labels: ['__meta_docker_container_label_io_creplanet_app']
-        regex: '(.+)'
-        target_label: 'app'
-      # 라벨이 없으면 기본값
-      - source_labels: ['app']
-        regex: '^$'
-        replacement: 'unknown-app' 
+
+    pipeline_stages:$'
+      - replacement: 'unknown-app' 
         target_label: 'app'
 
-    pipeline_stages:
-      # 1. Docker JSON Log Driver의 껍데기 파싱 (log, stream, time 분리)
+      # Docker JSON Log Driver의 껍데기 파싱 (log, stream, time 분리)
       - json:
           expressions:
             output: log
             stream: stream
             timestamp: time
       
-      # 2. 원본 로그(output)가 JSON 형태라면 다시 파싱하지 않고 그대로 보냄
+      # 원본 로그(output)가 JSON 형태라면 다시 파싱하지 않고 그대로 보냄
       - output:
           source: output
