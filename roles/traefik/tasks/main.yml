@@ -23,6 +23,14 @@
     group: "{{ ansible_user }}"
   tags: [traefik, letsencrypt]
 
+- name: Create Promtail config file
+  ansible.builtin.template:
+    src: promtail-config.yml.j2
+    dest: "{{ traefik_config_dir }}/promtail-config.yml"
+    mode: "0644"
+  notify: Restart Traefik
+  tags: [traefik, promtail, config]
+
 - name: Create Traefik docker compose file
   ansible.builtin.template:
     src: compose.yml.j2
