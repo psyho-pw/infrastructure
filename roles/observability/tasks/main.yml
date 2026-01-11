@@ -28,6 +28,15 @@
     - "{{ observability_dir }}/prometheus/data"
   tags: [observability, prometheus, directories]
 
+- name: Set Prometheus data directory ownership (for container)
+  ansible.builtin.file:
+    path: "{{ observability_dir }}/prometheus/data"
+    state: directory
+    mode: "0700"
+    owner: "65534"
+    group: "65534"
+  tags: [observability, prometheus, directories]
+
 - name: Create Loki directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -41,11 +50,20 @@
     - "{{ observability_dir }}/loki/data"
   tags: [observability, loki, directories]
 
+- name: Set Loki data directory ownership (for container)
+  ansible.builtin.file:
+    path: "{{ observability_dir }}/loki/data"
+    state: directory
+    mode: "0700"
+    owner: "10001"
+    group: "10001"
+  tags: [observability, loki, directories]
+
 - name: Create Grafana directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    mode: "0755"
+    mode: "0700"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
   loop:
