@@ -28,6 +28,7 @@
     src: promtail-config.yml.j2
     dest: "{{ traefik_config_dir }}/promtail-config.yml"
     mode: "0644"
+  when: promtail_enabled | default(true)
   notify: Restart Traefik
   tags: [traefik, promtail, config]
 

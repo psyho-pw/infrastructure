@@ -82,6 +82,7 @@ services:
 {% endif %}
 {% endif %}
 
+{% if promtail_enabled | default(true) %}
   promtail:
     image: grafana/promtail:latest
     container_name: promtail
@@ -93,6 +94,7 @@ services:
     command: -config.file=/etc/promtail/config.yml
     networks:
       - {{ traefik_network }}
+{% endif %}
 
 networks:
   {{ traefik_network }}:
