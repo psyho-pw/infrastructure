@@ -8,7 +8,7 @@ positions:
 clients:
   - url: https://{{ loki_endpoint }}/loki/api/v1/push
     external_labels:
-      host: "{{ server_name }}"
+      host: "{{ server_name | replace('-server', '') }}"
     basic_auth:
       username: "{{ loki_username }}"
       password: "{{ loki_password }}"
