@@ -120,3 +120,8 @@ redis_networks:
 # Redis 메모리 설정
 redis_maxmemory: "256mb"
 redis_maxmemory_policy: "allkeys-lru"
+
+# Loki 설정
+loki_endpoint: "test.psyho.kr"
+loki_username: "{{ vault_loki_username }}"
+loki_password: "{{ vault_loki_password }}"

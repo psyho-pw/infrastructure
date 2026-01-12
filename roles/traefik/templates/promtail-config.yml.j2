@@ -1,0 +1,38 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: https://{{ loki_endpoint }}/loki/loki/api/v1/push
+    external_labels:
+      host: "{{ server_name | replace('-server', '') }}"
+    basic_auth:
+      username: "{{ loki_username }}"
+      password: "{{ loki_password }}"
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+
+    relabel_configs:
+      # Docker 컨테이너 이름을 'container' 레이블로 변환
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+
+    pipeline_stages:
+      # Docker JSON Log Driver의 껍데기 파싱 (log, stream, time 분리)
+      - json:
+          expressions:
+            output: log
+            stream: stream
+            timestamp: time
+      
+      # 원본 로그(output)가 JSON 형태라면 다시 파싱하지 않고 그대로 보냄
+      - output:
+          source: output
