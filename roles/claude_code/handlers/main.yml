@@ -1,0 +1,8 @@
+---
+# Claude Code handlers
+
+- name: Restart Claude Code
+  community.docker.docker_compose_v2:
+    project_src: "{{ claude_code_dir }}"
+    build: always
+    state: restarted

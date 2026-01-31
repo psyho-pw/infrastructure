@@ -1,0 +1,29 @@
+---
+# Claude Code role default variables
+
+# Enable/disable Claude Code deployment
+claude_code_enabled: false
+
+# Claude Code directory
+claude_code_dir: "/opt/claude-code"
+
+# Claude Code Monitor Docker image
+claude_code_monitor_image: "ghcr.io/psyho-pw/claude-code-monitor:latest"
+
+# Claude Code Monitor domain
+claude_code_monitor_domain: "claude-monitor.example.com"
+
+# Optional: Basic auth for Claude Code Monitor (htpasswd format)
+# claude_code_monitor_auth: "user:$apr1$..."
+
+# Subagent configuration
+claude_code_subagent_enabled: false
+# claude_code_subagent_mappings:
+#   general-purpose: "gpt-4o"
+#   Explore: "gpt-4o-mini"
+
+# Network configuration (defined in group_vars/traefik_hosts.yml)
+# traefik_network: "traefik-network"
+
+# N8N integration (if n8n role is used)
+# n8n_data_dir: "/opt/n8n/data"

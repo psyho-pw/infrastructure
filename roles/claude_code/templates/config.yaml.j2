@@ -1,0 +1,30 @@
+# LLM Proxy Configuration
+# Managed by Ansible
+
+# Server configuration
+server:
+  port: 3001
+  timeouts:
+    read: 10m
+    write: 10m
+    idle: 10m
+
+# Provider configurations
+providers:
+  anthropic:
+    base_url: "https://api.anthropic.com"
+    max_retries: 3
+
+# Storage configuration
+storage:
+  db_path: "/app/data/requests.db"
+
+# Subagent Configuration
+subagents:
+  enable: {{ claude_code_subagent_enabled | default(false) | lower }}
+{% if claude_code_subagent_mappings is defined %}
+  mappings:
+{% for agent, model in claude_code_subagent_mappings.items() %}
+    {{ agent }}: "{{ model }}"
+{% endfor %}
+{% endif %}

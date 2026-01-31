@@ -80,10 +80,14 @@ graph TB
         Kafka[Kafka<br/>:9092<br/>TCP Routing]
         KafkaUI[Kafka UI<br/>Web Interface]
         Squid[Squid Proxy<br/>:8080<br/>TCP Routing]
-        
+        N8N[n8n<br/>:5678<br/>Workflow Automation]
+        ClaudeMonitor[Claude Code Monitor<br/>:5173<br/>AI Dev Assistant]
+
         PiTraefik -->|TCP Routing| Kafka
         PiTraefik -->|TLS Termination| KafkaUI
         PiTraefik -->|TCP Routing| Squid
+        PiTraefik -->|TLS Termination| N8N
+        PiTraefik -->|TLS Termination| ClaudeMonitor
         KafkaUI -->|Monitor| Kafka
     end
 
@@ -132,7 +136,9 @@ graph TB
     Prometheus -.->|Scrape Metrics| Redis
     Prometheus -.->|Scrape Metrics| Kafka
     Prometheus -.->|Scrape Metrics| Jenkins
-    
+    Prometheus -.->|Scrape Metrics| N8N
+    Prometheus -.->|Scrape Metrics| ClaudeMonitor
+
     Loki -.->|Collect Logs| DBTraefik
     Loki -.->|Collect Logs| JenkinsTraefik
     Loki -.->|Collect Logs| PiTraefik
@@ -143,6 +149,8 @@ graph TB
     Loki -.->|Collect Logs| Kafka
     Loki -.->|Collect Logs| Jenkins
     Loki -.->|Collect Logs| ProdApps
+    Loki -.->|Collect Logs| N8N
+    Loki -.->|Collect Logs| ClaudeMonitor
 
     classDef serverStyle fill:#e1f5ff,stroke:#0066cc,stroke-width:2px
     classDef proxyStyle fill:#fff4e6,stroke:#ff9800,stroke-width:2px
@@ -155,7 +163,7 @@ graph TB
     class DBTraefik,JenkinsTraefik,PiTraefik,ProdTraefik,TestTraefik proxyStyle
     class PostgreSQL,Redis,Kafka dbStyle
     class MariaDB passthroughStyle
-    class Jenkins,ProdApps,KafkaUI appStyle
+    class Jenkins,ProdApps,KafkaUI,N8N,ClaudeMonitor appStyle
     class Prometheus,Loki,Grafana monitoringStyle
 ```
 
