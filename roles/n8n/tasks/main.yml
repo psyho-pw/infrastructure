@@ -1,0 +1,34 @@
+---
+# n8n role - n8n 워크플로우 자동화 플랫폼 설정
+
+- name: Skip n8n deployment if not enabled
+  ansible.builtin.meta: end_play
+  when: not (n8n_enabled | default(false))
+  tags: [n8n]
+
+- name: Create n8n directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ n8n_dir }}"
+    - "{{ n8n_data_dir }}"
+    - "{{ n8n_data_dir }}/download"
+  tags: [n8n, directories]
+
+- name: Create n8n docker compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ n8n_dir }}/compose.yml"
+    mode: "0644"
+  notify: Restart n8n
+  tags: [n8n, compose]
+
+- name: Deploy n8n container
+  community.docker.docker_compose_v2:
+    project_src: "{{ n8n_dir }}"
+    state: present
+  tags: [n8n, deploy]

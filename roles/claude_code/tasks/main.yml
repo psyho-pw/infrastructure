@@ -1,0 +1,61 @@
+---
+# Claude Code role - Claude Code 환경 및 모니터링 프록시 설정
+
+- name: Skip Claude Code deployment if not enabled
+  ansible.builtin.meta: end_play
+  when: not (claude_code_enabled | default(false))
+  tags: [claude-code]
+
+- name: Create Claude Code directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ claude_code_dir }}"
+    - "{{ claude_code_dir }}/claude-config"
+    - "{{ claude_code_dir }}/claude-config/.claude"
+    - "{{ claude_code_dir }}/proxy-data"
+  tags: [claude-code, directories]
+
+- name: Create Claude Code Monitor config
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ claude_code_dir }}/config.yaml"
+    mode: "0644"
+  notify: Restart Claude Code
+  tags: [claude-code, config]
+
+- name: Create entrypoint script for Claude SSH server
+  ansible.builtin.template:
+    src: entrypoint.sh.j2
+    dest: "{{ claude_code_dir }}/entrypoint.sh"
+    mode: "0755"
+  notify: Restart Claude Code
+  tags: [claude-code, entrypoint]
+
+- name: Create Dockerfile for Claude SSH server
+  ansible.builtin.template:
+    src: dockerfile.j2
+    dest: "{{ claude_code_dir }}/Dockerfile"
+    mode: "0644"
+  notify: Restart Claude Code
+  tags: [claude-code, dockerfile]
+
+- name: Create docker compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ claude_code_dir }}/compose.yml"
+    mode: "0644"
+  notify: Restart Claude Code
+  tags: [claude-code, compose]
+
+- name: Deploy Claude Code containers
+  community.docker.docker_compose_v2:
+    project_src: "{{ claude_code_dir }}"
+    build: always
+    pull: always
+    state: present
+  tags: [claude-code, deploy]

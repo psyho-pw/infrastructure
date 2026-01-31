@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+# Set password at runtime if provided
+if [ -n "$CLAUDE_USER_PASSWORD" ]; then
+    echo "claudeuser:$CLAUDE_USER_PASSWORD" | chpasswd
+    echo "Password set for claudeuser"
+fi
+
+# Start SSH daemon
+exec "$@"

@@ -1,0 +1,51 @@
+services:
+  claude-server:
+    build: .
+    restart: always
+    container_name: claude-ssh-server
+    expose:
+      - "22"
+    volumes:
+      - ./claude-config:/home/claudeuser/
+      - {{ n8n_data_dir }}/download:/workspace
+    environment:
+      - ANTHROPIC_BASE_URL=http://claude-code-monitor:3001
+      - CLAUDE_USER_PASSWORD={{ claude_code_user_password }}
+    networks:
+      - {{ traefik_network }}
+
+  claude-code-monitor:
+    image: {{ claude_code_monitor_image }}
+    restart: always
+    container_name: claude-code-monitor
+    volumes:
+      - ./proxy-data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - ANTHROPIC_FORWARD_URL=https://api.anthropic.com
+      - PORT=3001
+      - WEB_PORT=5173
+      - DB_PATH=/app/data/requests.db
+      - MONITOR_DOMAIN={{ claude_code_monitor_domain }}{{ claude_code_monitor_path | default('') }}
+    networks:
+      - {{ traefik_network }}
+    labels:
+      - "traefik.enable=true"
+      # StripPrefix 미들웨어
+      - "traefik.http.middlewares.claude-monitor-stripprefix.stripprefix.prefixes={{ claude_code_monitor_path | default('/') }}"
+      # Claude Code Monitor Web UI
+      - "traefik.http.routers.claude-monitor.rule=Host(`{{ claude_code_monitor_domain }}`) && PathPrefix(`{{ claude_code_monitor_path | default('/') }}`)"
+      - "traefik.http.routers.claude-monitor.entrypoints=websecure"
+      - "traefik.http.routers.claude-monitor.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.claude-monitor.service=claude-monitor"
+      - "traefik.http.services.claude-monitor.loadbalancer.server.port=5173"
+{% if claude_code_monitor_auth is defined %}
+      - "traefik.http.routers.claude-monitor.middlewares=claude-monitor-stripprefix,claude-monitor-auth"
+      - "traefik.http.middlewares.claude-monitor-auth.basicauth.users={{ claude_code_monitor_auth }}"
+{% else %}
+      - "traefik.http.routers.claude-monitor.middlewares=claude-monitor-stripprefix"
+{% endif %}
+
+networks:
+  {{ traefik_network }}:
+    external: true

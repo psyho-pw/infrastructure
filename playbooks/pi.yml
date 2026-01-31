@@ -33,3 +33,19 @@
   roles:
     - squid_proxy
   tags: [squid]
+
+- name: Deploy n8n on Pi
+  hosts: pi
+  gather_facts: true
+  become: true
+  roles:
+    - n8n
+  tags: [n8n]
+
+- name: Deploy Claude Code on Pi
+  hosts: pi
+  gather_facts: true
+  become: true
+  roles:
+    - claude_code
+  tags: [claude-code]

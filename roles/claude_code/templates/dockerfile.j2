@@ -1,0 +1,40 @@
+FROM node:24-bookworm-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    git \
+    curl \
+    bash \
+    openssh-server \
+    nano \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+RUN npm install -g @google/gemini-cli
+
+RUN userdel -r node && \
+    groupadd -g 1000 claudeuser && \
+    useradd -u 1000 -g 1000 -m -s /bin/bash claudeuser
+
+RUN mkdir -p /home/claudeuser/.claude && \
+    mkdir -p /workspace && \
+    chown -R claudeuser:claudeuser /home/claudeuser/.claude && \
+    chown -R claudeuser:claudeuser /workspace
+
+USER claudeuser
+RUN curl -fsSL https://claude.ai/install.sh | bash
+USER root
+
+RUN mkdir /var/run/sshd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 22
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/sbin/sshd", "-D"]
