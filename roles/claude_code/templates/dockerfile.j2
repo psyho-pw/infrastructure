@@ -28,6 +28,8 @@ USER claudeuser
 RUN curl -fsSL https://claude.ai/install.sh | bash
 USER root
 
+RUN ln -sf /home/claudeuser/.local/bin/claude /usr/local/bin/claude || true
+
 RUN mkdir /var/run/sshd && \
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
 

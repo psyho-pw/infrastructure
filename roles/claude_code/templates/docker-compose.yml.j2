@@ -6,7 +6,7 @@ services:
     expose:
       - "22"
     volumes:
-      - ./claude-config:/home/claudeuser/
+      - ./claude-config/.claude:/home/claudeuser/.claude
       - {{ n8n_data_dir }}/download:/workspace
     environment:
       - ANTHROPIC_BASE_URL=http://claude-code-monitor:3001
