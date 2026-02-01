@@ -31,19 +31,14 @@ services:
       - {{ traefik_network }}
     labels:
       - "traefik.enable=true"
-      # StripPrefix 미들웨어
-      - "traefik.http.middlewares.claude-monitor-stripprefix.stripprefix.prefixes={{ claude_code_monitor_path | default('/') }}"
-      # Claude Code Monitor Web UI
-      - "traefik.http.routers.claude-monitor.rule=Host(`{{ claude_code_monitor_domain }}`) && PathPrefix(`{{ claude_code_monitor_path | default('/') }}`)"
-      - "traefik.http.routers.claude-monitor.entrypoints=websecure"
+      - "traefik.http.services.claude-monitor.loadbalancer.server.port=5173"
+      - "traefik.http.routers.claude-monitor.rule=Host(`{{ claude_code_monitor_domain }}`)"
+      - "traefik.http.routers.claude-monitor.entrypoints=claude-web"
       - "traefik.http.routers.claude-monitor.tls.certresolver=letsencrypt"
       - "traefik.http.routers.claude-monitor.service=claude-monitor"
-      - "traefik.http.services.claude-monitor.loadbalancer.server.port=5173"
 {% if claude_code_monitor_auth is defined %}
-      - "traefik.http.routers.claude-monitor.middlewares=claude-monitor-stripprefix,claude-monitor-auth"
+      - "traefik.http.routers.claude-monitor.middlewares=claude-monitor-auth"
       - "traefik.http.middlewares.claude-monitor-auth.basicauth.users={{ claude_code_monitor_auth }}"
-{% else %}
-      - "traefik.http.routers.claude-monitor.middlewares=claude-monitor-stripprefix"
 {% endif %}
 
 networks:

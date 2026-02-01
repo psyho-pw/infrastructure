@@ -33,6 +33,12 @@ RUN ln -sf /home/claudeuser/.local/bin/claude /usr/local/bin/claude || true
 RUN mkdir /var/run/sshd && \
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
 
+# Set up environment variables for SSH sessions
+RUN echo 'ANTHROPIC_BASE_URL=http://claude-code-monitor:3001' >> /etc/environment && \
+    echo 'export ANTHROPIC_BASE_URL=http://claude-code-monitor:3001' >> /etc/profile.d/claude.sh && \
+    chmod +x /etc/profile.d/claude.sh && \
+    echo 'export ANTHROPIC_BASE_URL=http://claude-code-monitor:3001' >> /home/claudeuser/.bashrc
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
