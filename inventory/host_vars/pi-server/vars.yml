@@ -11,6 +11,7 @@ firewall_allowed_tcp_ports:
   - 22 # SSH
   - 80 # HTTP
   - 443 # HTTPS
+  - 8000 # Claude Code Monitor Web UI
   - 8080 # Squid Proxy
   - 9092 # Kafka
 
@@ -19,7 +20,7 @@ traefik_dashboard_domain: "{{ vault_traefik_domain }}"
 traefik_acme_email: "{{ vault_traefik_acme_email }}"
 traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth }}"
 
-# Traefik 추가 진입점 (Kafka, Squid)
+# Traefik 추가 진입점 (Kafka, Squid, Claude Web)
 traefik_custom_entrypoints:
   kafka:
     address: ":9092"
@@ -30,11 +31,14 @@ traefik_custom_entrypoints:
         readTimeout: 0
         writeTimeout: 0
         idleTimeout: 3600s
+  claude-web:
+    address: ":8000"
 
 # Traefik 추가 포트
 traefik_custom_ports:
   - "9092:9092"
   - "8080:8080"
+  - "8000:8000"
 
 # Kafka 설정
 kafka_enabled: true

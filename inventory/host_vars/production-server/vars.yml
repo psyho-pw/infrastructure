@@ -2,11 +2,36 @@
 # Production 서버 전용 변수
 
 server_name: "production-server"
-domain: "production.example.com" # CHANGE THIS
+domain: "{{ vault_domain }}"
 
-# Traefik 설정 (민감 정보는 vault.yml에서 참조)
+# 방화벽 설정
+firewall_enabled: true
+firewall_allowed_tcp_ports:
+  - 22 # SSH
+  - 80 # HTTP
+  - 443 # HTTPS
+
+# Traefik 설정
 traefik_acme_email: "{{ vault_traefik_acme_email }}"
 traefik_dashboard_domain: "{{ domain }}"
 traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth | default(omit) }}"
 
-# 서비스별 설정 추가 필요
+# Traefik 추가 진입점
+traefik_custom_entrypoints: {}
+# kafka:
+#   address: ":9092"
+
+# Traefik 추가 포트
+traefik_custom_ports: []
+# - "9092:9092"
+
+# Docker 네트워크
+docker_custom_networks: []
+# - name: kafka-network
+#   driver: bridge
+#   state: present
+
+# Loki 설정
+loki_endpoint: "test.psyho.kr"
+loki_username: "{{ vault_loki_username }}"
+loki_password: "{{ vault_loki_password }}"
