@@ -1,0 +1,8 @@
+[Unit]
+Description=Sync MariaDB TLS certificate from Traefik acme.json
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart={{ mariadb_base_dir }}/extract-certs.sh

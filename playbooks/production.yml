@@ -1,0 +1,19 @@
+---
+# Production Server Playbook
+
+- name: Configure Production server base
+  hosts: production
+  gather_facts: true
+  become: true
+  roles:
+    - common
+    - docker
+  tags: [common, docker]
+
+- name: Deploy Traefik and Promtail on Production
+  hosts: production
+  gather_facts: true
+  become: true
+  roles:
+    - traefik
+  tags: [traefik]

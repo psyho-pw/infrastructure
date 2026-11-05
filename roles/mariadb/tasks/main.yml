@@ -52,7 +52,27 @@
   ansible.builtin.command:
     cmd: "{{ mariadb_base_dir }}/extract-certs.sh"
   register: mariadb_cert_extract_result
-  changed_when: mariadb_cert_extract_result.rc == 0
+  changed_when: "'unchanged' not in mariadb_cert_extract_result.stdout"
+  when:
+    - mariadb_tls_enabled | default(false)
+    - not ansible_check_mode
+  tags: [mariadb, tls]
+
+- name: Deploy MariaDB certificate sync systemd units
+  ansible.builtin.template:
+    src: "mariadb-cert-sync.{{ item }}.j2"
+    dest: "/etc/systemd/system/mariadb-cert-sync.{{ item }}"
+    mode: "0644"
+  loop: [service, timer]
+  when: mariadb_tls_enabled | default(false)
+  tags: [mariadb, tls]
+
+- name: Enable MariaDB certificate sync timer
+  ansible.builtin.systemd:
+    name: mariadb-cert-sync.timer
+    state: started
+    enabled: true
+    daemon_reload: true
   when:
     - mariadb_tls_enabled | default(false)
     - not ansible_check_mode

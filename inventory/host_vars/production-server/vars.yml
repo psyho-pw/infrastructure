@@ -2,11 +2,23 @@
 # Production 서버 전용 변수
 
 server_name: "production-server"
-domain: "production.example.com" # CHANGE THIS
+domain: "{{ vault_domain }}"
 
-# Traefik 설정 (민감 정보는 vault.yml에서 참조)
+# 방화벽 설정 (허용 포트는 group_vars/all.yml 기본값 사용)
+firewall_enabled: true
+
+# Traefik 설정
 traefik_acme_email: "{{ vault_traefik_acme_email }}"
 traefik_dashboard_domain: "{{ domain }}"
 traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth | default(omit) }}"
 
-# 서비스별 설정 추가 필요
+# Loki 설정
+loki_endpoint: "test.psyho.kr"
+loki_username: "{{ vault_loki_username }}"
+loki_password: "{{ vault_loki_password }}"
+
+# Promtail 수집 대상
+promtail_containers:
+  - traefik
+  - promtail
+  - sayhoBot
