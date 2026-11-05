@@ -1,0 +1,63 @@
+---
+# Shared Calendar role - shared-calendar 앱 slot 설정
+
+- name: Skip shared-calendar deployment if not enabled
+  ansible.builtin.meta: end_play
+  when: not (shared_calendar_enabled | default(false))
+  tags: [shared-calendar]
+
+- name: Create shared-calendar directory
+  ansible.builtin.file:
+    path: "{{ shared_calendar_dir }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  tags: [shared-calendar, directories]
+
+- name: Create shared-calendar environment file
+  ansible.builtin.template:
+    src: shared_calendar.env.j2
+    dest: "{{ shared_calendar_dir }}/.env"
+    mode: "0600"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  diff: false
+  notify: Recreate shared-calendar
+  tags: [shared-calendar, env]
+
+- name: Create shared-calendar docker compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ shared_calendar_dir }}/compose.yml"
+    mode: "0644"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Recreate shared-calendar
+  tags: [shared-calendar, compose]
+
+- name: Create shared-calendar deploy script
+  ansible.builtin.template:
+    src: deploy.sh.j2
+    dest: "{{ shared_calendar_dir }}/deploy.sh"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  tags: [shared-calendar, deploy-script]
+
+- name: Log in to GHCR for image pull
+  community.docker.docker_login:
+    registry_url: ghcr.io
+    username: "{{ shared_calendar_ghcr_user }}"
+    password: "{{ shared_calendar_ghcr_token }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  tags: [shared-calendar, registry]
+
+- name: Authorize CI deploy key (forced command)
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user }}"
+    key: "{{ shared_calendar_deploy_pubkey }}"
+    key_options: 'command="{{ shared_calendar_dir }}/deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding'
+    state: present
+  tags: [shared-calendar, deploy-key]

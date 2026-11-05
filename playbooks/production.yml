@@ -17,3 +17,11 @@
   roles:
     - traefik
   tags: [traefik]
+
+- name: Deploy Shared Calendar slot on Production
+  hosts: production
+  gather_facts: true
+  become: true
+  roles:
+    - shared_calendar
+  tags: [shared-calendar]

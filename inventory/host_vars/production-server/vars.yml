@@ -4,13 +4,23 @@
 server_name: "production-server"
 domain: "{{ vault_domain }}"
 
-# 방화벽 설정 (허용 포트는 group_vars/all.yml 기본값 사용)
+# 방화벽 설정 (group_vars/all.yml 기본값을 덮어쓰므로 기본 포트도 함께 적는다)
 firewall_enabled: true
+firewall_allowed_tcp_ports:
+  - 22 # SSH
+  - 80 # HTTP
+  - 443 # HTTPS
+  - 8443 # shared-calendar (Traefik calendar 진입점)
 
 # Traefik 설정
 traefik_acme_email: "{{ vault_traefik_acme_email }}"
 traefik_dashboard_domain: "{{ domain }}"
 traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth | default(omit) }}"
+traefik_custom_entrypoints:
+  calendar:
+    address: ":8443"
+traefik_custom_ports:
+  - "8443:8443"
 
 # Loki 설정
 loki_endpoint: "test.psyho.kr"
@@ -22,3 +32,22 @@ promtail_containers:
   - traefik
   - promtail
   - sayhoBot
+  - shared-calendar
+
+# Shared Calendar 설정 (이미지 태그는 CI가 .env.tag로 관리)
+shared_calendar_enabled: true
+shared_calendar_dir: "{{ base_dir }}/shared-calendar"
+shared_calendar_domain: "{{ domain }}"
+shared_calendar_port: 8443
+shared_calendar_origin: "https://{{ shared_calendar_domain }}:{{ shared_calendar_port }}"
+shared_calendar_image: "ghcr.io/psyho-pw/shared-calendar"
+shared_calendar_db_host: "db.{{ domain }}"
+shared_calendar_db_name: "shared_calendar"
+shared_calendar_db_user: "{{ vault_shared_calendar_db_app_user }}"
+shared_calendar_db_password: "{{ vault_shared_calendar_db_app_password }}"
+shared_calendar_csrf_secret: "{{ vault_shared_calendar_csrf_secret }}"
+shared_calendar_vapid_public_key: "{{ vault_shared_calendar_vapid_public }}"
+shared_calendar_vapid_private_key: "{{ vault_shared_calendar_vapid_private }}"
+shared_calendar_ghcr_user: "{{ vault_ghcr_pull_user }}"
+shared_calendar_ghcr_token: "{{ vault_ghcr_pull_token }}"
+shared_calendar_deploy_pubkey: "{{ vault_shared_calendar_deploy_pubkey }}"

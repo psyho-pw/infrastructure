@@ -1,0 +1,22 @@
+#!/bin/bash
+set -euo pipefail
+cd "{{ shared_calendar_dir }}"
+TAG="${SSH_ORIGINAL_COMMAND:-}"
+[[ "$TAG" =~ ^[0-9a-f]{40}$ ]] || { echo "invalid tag" >&2; exit 2; }
+exec 9>.deploy.lock
+flock -n 9 || { echo "deploy in progress" >&2; exit 3; }
+
+PREV=$(sed -n 's/^IMAGE_TAG=//p' .env.tag 2>/dev/null || true)
+docker pull "{{ shared_calendar_image }}:$TAG"
+echo "IMAGE_TAG=$TAG" > .env.tag
+dc() { docker compose --env-file .env.tag "$@"; }
+dc up -d app || true
+
+for _ in $(seq 30); do
+  s=$(docker inspect -f '{{ '{{' }}.State.Health.Status{{ '}}' }}' shared-calendar 2>/dev/null || true)
+  [ "$s" = healthy ] && { echo "deployed $TAG (prev ${PREV:-none})"; exit 0; }
+  sleep 3
+done
+echo "unhealthy; rolling back to ${PREV:-none}" >&2
+if [ -n "$PREV" ]; then echo "IMAGE_TAG=$PREV" > .env.tag; dc up -d app; fi
+exit 1
