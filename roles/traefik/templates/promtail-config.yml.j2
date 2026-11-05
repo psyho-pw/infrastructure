@@ -18,6 +18,14 @@ scrape_configs:
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
+{% if promtail_containers | default([]) | length > 0 %}
+        filters:
+          - name: name
+            values:
+{% for name in promtail_containers %}
+              - "^/{{ name }}$"
+{% endfor %}
+{% endif %}
 
     relabel_configs:
       # Docker 컨테이너 이름을 'container' 레이블로 변환

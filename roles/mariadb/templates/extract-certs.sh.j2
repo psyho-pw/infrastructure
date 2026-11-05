@@ -1,54 +1,66 @@
 #!/bin/bash
-# Traefik acme.json에서 인증서 추출 스크립트
+# Traefik acme.json에서 인증서 추출 후, 변경 시에만 교체하고 MariaDB에 FLUSH SSL
 # 도메인: {{ mariadb_tls_domain }}
+set -euo pipefail
 
 ACME_JSON="{{ traefik_letsencrypt_dir | default(base_dir + '/traefik/letsencrypt') }}/acme.json"
 CERT_DIR="{{ mariadb_tls_cert_dir }}"
 DOMAIN="{{ mariadb_tls_domain }}"
+CONTAINER="mariadb"
 
-# 디렉토리 생성
+command -v jq >/dev/null || { echo "jq is required but not installed." >&2; exit 1; }
 mkdir -p "$CERT_DIR"
 
-# jq가 설치되어 있는지 확인
-if ! command -v jq &> /dev/null; then
-    echo "jq is required but not installed."
-    exit 1
-fi
+TMP=$(mktemp -d "$CERT_DIR/.tmp.XXXXXX")
+trap 'rm -rf "$TMP"' EXIT
 
-# acme.json에서 인증서 추출
-# Let's Encrypt resolver에서 도메인에 해당하는 인증서 찾기
-CERT=$(jq -r --arg domain "$DOMAIN" '.letsencrypt.Certificates[] | select(.domain.main == $domain) | .certificate' "$ACME_JSON" 2>/dev/null)
-KEY=$(jq -r --arg domain "$DOMAIN" '.letsencrypt.Certificates[] | select(.domain.main == $domain) | .key' "$ACME_JSON" 2>/dev/null)
-
+CERT=$(jq -r --arg d "$DOMAIN" '.letsencrypt.Certificates[] | select(.domain.main == $d) | .certificate' "$ACME_JSON")
+KEY=$(jq -r --arg d "$DOMAIN" '.letsencrypt.Certificates[] | select(.domain.main == $d) | .key' "$ACME_JSON")
 if [ -z "$CERT" ] || [ "$CERT" == "null" ]; then
-    echo "Certificate for $DOMAIN not found in acme.json"
+    echo "Certificate for $DOMAIN not found in acme.json" >&2
     exit 1
 fi
 
-# Base64 디코딩 후 파일로 저장
-echo "$CERT" | base64 -d > "$CERT_DIR/cert.pem"
-echo "$KEY" | base64 -d > "$CERT_DIR/key.pem"
+echo "$CERT" | base64 -d > "$TMP/cert.pem"
+echo "$KEY" | base64 -d > "$TMP/key.pem"
+openssl x509 -in "$TMP/cert.pem" -noout -checkend 0 >/dev/null \
+    || { echo "Certificate in acme.json is already expired" >&2; exit 1; }
 
-# CA 인증서 (cert.pem에서 중간 인증서 추출)
-# fullchain에서 첫 번째는 서버 인증서, 나머지는 CA 체인
-csplit -f "$CERT_DIR/cert-" -b "%02d.pem" "$CERT_DIR/cert.pem" '/-----BEGIN CERTIFICATE-----/' '{*}' 2>/dev/null
-# 첫 번째 파일은 빈 파일이므로 삭제
-rm -f "$CERT_DIR/cert-00.pem"
-# 서버 인증서는 cert-01.pem
-# CA 체인은 나머지 (cert-02.pem 이후)
-if [ -f "$CERT_DIR/cert-02.pem" ]; then
-    cat "$CERT_DIR/cert-02.pem" "$CERT_DIR/cert-03.pem" 2>/dev/null > "$CERT_DIR/ca.pem"
+# fullchain: 첫 번째는 서버 인증서, 나머지는 CA 체인
+csplit -s -f "$TMP/part-" -b "%02d.pem" "$TMP/cert.pem" '/-----BEGIN CERTIFICATE-----/' '{*}'
+if [ -f "$TMP/part-02.pem" ]; then
+    cat "$TMP"/part-0[2-9].pem > "$TMP/ca.pem"
 else
-    # CA 체인이 없으면 빈 파일 생성 (자체 서명 또는 루트 CA 직접 서명)
-    cp "$CERT_DIR/cert.pem" "$CERT_DIR/ca.pem"
+    cp "$TMP/cert.pem" "$TMP/ca.pem"
+fi
+rm -f "$TMP"/part-*.pem
+
+if cmp -s "$TMP/cert.pem" "$CERT_DIR/cert.pem" && cmp -s "$TMP/key.pem" "$CERT_DIR/key.pem"; then
+    echo "unchanged"
+    exit 0
 fi
 
-# 임시 파일 정리
-rm -f "$CERT_DIR/cert-"*.pem
+# 컨테이너 내 mysql 사용자(999)가 읽을 수 있도록
+chown 999:999 "$TMP"/*.pem
+chmod 644 "$TMP/cert.pem" "$TMP/ca.pem"
+chmod 600 "$TMP/key.pem"
+mv -f "$TMP/ca.pem" "$CERT_DIR/ca.pem"
+mv -f "$TMP/key.pem" "$CERT_DIR/key.pem"
+mv -f "$TMP/cert.pem" "$CERT_DIR/cert.pem"
+echo "updated: $(openssl x509 -in "$CERT_DIR/cert.pem" -noout -enddate)"
 
-# 권한 설정
-chmod 644 "$CERT_DIR/cert.pem" "$CERT_DIR/ca.pem"
-chmod 600 "$CERT_DIR/key.pem"
+if [ "$(docker inspect -f '{{ '{{' }}.State.Running{{ '}}' }}' "$CONTAINER" 2>/dev/null)" != "true" ]; then
+    echo "$CONTAINER not running; certificates will load on next start"
+    exit 0
+fi
 
-echo "Certificates extracted successfully to $CERT_DIR"
-ls -la "$CERT_DIR"
+# shellcheck disable=SC2016
+docker exec "$CONTAINER" sh -c 'mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "FLUSH SSL"'
+# shellcheck disable=SC2016
+LOADED=$(docker exec "$CONTAINER" sh -c 'mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -Nse "SHOW STATUS LIKE '\''Ssl_server_not_after'\''"' | cut -f2)
+EXPECTED=$(openssl x509 -in "$CERT_DIR/cert.pem" -noout -enddate | cut -d= -f2)
+if [ "$LOADED" != "$EXPECTED" ]; then
+    echo "FLUSH SSL did not load new certificate (loaded: $LOADED, expected: $EXPECTED)" >&2
+    exit 1
+fi
+echo "reloaded: $LOADED"
