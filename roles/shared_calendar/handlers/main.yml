@@ -6,5 +6,7 @@
     cmd: docker compose --env-file .env.tag up -d --force-recreate app
     chdir: "{{ shared_calendar_dir }}"
     removes: "{{ shared_calendar_dir }}/.env.tag"
+  # Check mode creates nothing, so chdir into a not-yet-created dir would fail the dry-run.
+  when: not ansible_check_mode
   become: true
   become_user: "{{ ansible_user }}"
