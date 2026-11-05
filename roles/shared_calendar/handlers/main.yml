@@ -1,0 +1,10 @@
+---
+# Shared Calendar handlers
+
+- name: Recreate shared-calendar
+  ansible.builtin.command:
+    cmd: docker compose --env-file .env.tag up -d --force-recreate app
+    chdir: "{{ shared_calendar_dir }}"
+    removes: "{{ shared_calendar_dir }}/.env.tag"
+  become: true
+  become_user: "{{ ansible_user }}"

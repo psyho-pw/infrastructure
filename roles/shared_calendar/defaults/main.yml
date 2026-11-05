@@ -1,0 +1,22 @@
+---
+# Shared Calendar role defaults
+
+shared_calendar_enabled: false
+
+shared_calendar_dir: "{{ base_dir }}/shared-calendar"
+shared_calendar_image: "ghcr.io/psyho-pw/shared-calendar"
+
+# 외부 노출: Traefik 진입점 calendar(:8443)
+shared_calendar_domain: "{{ domain }}"
+shared_calendar_port: 8443
+shared_calendar_origin: "https://{{ shared_calendar_domain }}:{{ shared_calendar_port }}"
+
+shared_calendar_db_host: "db.{{ domain }}"
+shared_calendar_db_name: "shared_calendar"
+
+# 필수 비밀값 (host_vars vars.yml에서 vault_* 로 연결, 기본값 없음)
+# shared_calendar_db_user / shared_calendar_db_password
+# shared_calendar_csrf_secret
+# shared_calendar_vapid_public_key / shared_calendar_vapid_private_key
+# shared_calendar_ghcr_user / shared_calendar_ghcr_token   (read:packages PAT)
+# shared_calendar_deploy_pubkey                            (CI 배포 키 공개키)
